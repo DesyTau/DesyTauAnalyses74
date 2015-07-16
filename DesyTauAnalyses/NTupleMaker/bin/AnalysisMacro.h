@@ -17,6 +17,9 @@ Float_t xs,fact,fact2;
    //string CutList[10];
 vector<string> CutList;
 
+//TH1D * histWeights = new TH1D("histWeights","",1,-0.5,0.5);
+TH1D * histWeights = new TH1D("histWeights","",0,0,0);
+
 TH1D *hHT[CutN];
 TH1D *hST[CutN];
 TH1D *h0JetpT[CutN];
@@ -46,6 +49,8 @@ TH1D *hmu_miniISO[CutN];
 TH1D *hmu_miniISOL[CutN];
 
 
+
+
 TH1D *hnTau[CutN];
 TH1D *hTaupt[CutN];
 TH1D *hTaueta[CutN];
@@ -72,6 +77,12 @@ TH1D *hdR_mutau[CutN];
 TH1D *hdR_eltau[CutN];
 TH1D *hdR_tautau[CutN];
 TH1D *hdR_muel[CutN];
+
+
+TH1D *hnpv[CutN];
+TH1D *hnpu[CutN];
+TH1D *hnrho[CutN];
+
 
 TH2D *hmet_MT[CutN];
 TH2D *hmet_MTel[CutN];
@@ -328,6 +339,78 @@ bool electronMvaIdTight(Float_t eta, Float_t mva) {
 
 }
 
+bool electronMvaIdLoose(float eta, float mva) {
+
+  float absEta = fabs(eta);
+
+  bool passed = false;
+  if (absEta<0.8) {
+    if (mva>0.35) passed = true;
+  }
+  else if (absEta<1.479) {
+    if (mva>0.20) passed = true;
+  }
+  else {
+    if (mva>-0.52) passed = true;
+  }
+
+  return passed;
+
+}
+bool electronMvaIdWP80(float pt, float eta, float mva) {
+
+  float absEta = fabs(eta);
+  bool passed = false;
+  if (absEta<0.8) {
+    if (pt<10) 
+      passed = mva > -0.253;
+    else 
+      passed = mva > 0.965;
+  }
+  else if (absEta<1.479) {
+    if (pt<10)
+      passed = mva > 0.081;
+    else
+      passed = mva > 0.917;
+  }
+  else {
+    if (pt<10)
+      passed = mva > -0.081;
+    else
+      passed = mva > 0.683;
+  }
+
+  return passed;
+
+}
+bool electronMvaIdWP90(float pt, float eta, float mva) {
+
+  float absEta = fabs(eta);
+  bool passed = false;
+  if (absEta<0.8) {
+    if (pt<10) 
+      passed = mva > -0.483;
+    else 
+      passed = mva > 0.933;
+  }
+  else if (absEta<1.479) {
+    if (pt<10)
+      passed = mva > -0.267;
+    else
+      passed = mva > 0.825;
+  }
+  else {
+    if (pt<10)
+      passed = mva > -0.323;
+    else
+      passed = mva > 0.337;
+  }
+
+  return passed;
+
+}
+
+
 bool electronVetoTight(Float_t SuperClusterEta, Float_t eta, Float_t phi, Float_t full5, Float_t hOverE, Float_t d0, Float_t dZ, Float_t ooE, Float_t pfISO, Float_t nMissing, bool convVeto) {
 
 
@@ -499,6 +582,12 @@ void SetupHists(int CutNer){
 	hdR_muel[cj]= new TH1D ("dR_muel_"+nCut,"dR_muel "+cutName,60,0,6);;
         hdR_muel[cj]->Sumw2();
 
+	hnpv[cj]= new TH1D ("npv_"+nCut,"npv "+cutName,50,0,50);;
+        hnpv[cj]->Sumw2();
+	hnpu[cj]= new TH1D ("npu_"+nCut,"npu "+cutName,50,0,50);;
+        hnpu[cj]->Sumw2();
+	hnrho[cj]= new TH1D ("nrho_"+nCut,"nrho "+cutName,50,0,50);;
+        hnrho[cj]->Sumw2();
  
  
 	hmet_dPhi[cj] = new TH2D ("met_dPhi_"+nCut,"met_dPhi "+cutName,200.0,0.0,2000.0,64,0.0,3.2);
@@ -545,6 +634,9 @@ void FillMainHists(int CutIndex, Double_t EvWeight, vector<TLorentzVector>  ElV,
         hnTau[CutIndex]->Fill(TauV.size(),EvWeight);
         hnEl[CutIndex]->Fill(ElV.size(),EvWeight);
         hnLep[CutIndex]->Fill(ElV.size()+MuV.size()+TauV.size(),EvWeight);
+	hnpu[CutIndex]->Fill(tree_.numpileupinteractions,EvWeight);
+	hnpv[CutIndex]->Fill(tree_.primvertex_count,EvWeight);
+	hnrho[CutIndex]->Fill(tree_.rho,EvWeight);
    //     if (JetsV.size() > 0) h0JetpT[CutIndex]->Fill(JetsV.at(0).Pt(),EvWeight);
   //  if(FillBJets){
   //      hnBJet[CutIndex]->Fill(Obj.nBJetGood,EvWeight);

@@ -29,13 +29,13 @@ process.load("Configuration.StandardSequences.MagneticField_cff")
 
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
 #process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V7C', '')
-#process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V9A', '')
-process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V9', '')
+process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V9A', '')
+#process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V9', '')
 #process.GlobalTag.globaltag = cms.string('MCRUN2_74_V9::Al')
 #process.GlobalTag.globaltag = cms.string('MCRUN2_74_V9')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(50)
+    input = cms.untracked.int32(100)
 )
 
 process.source = cms.Source("PoolSource",
@@ -48,7 +48,7 @@ process.source = cms.Source("PoolSource",
 #		'/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/009D49A5-7314-E511-84EF-0025905A605E.root'
 		# DYJetsToLL_M-50 (aMC@NLO 50ns)
 #		'/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt50ns_MCRUN2_74_V9A-v2/00000/02DE3B74-6C08-E511-ABE3-0025905A60D0.root'
-		'/store/mc/RunIISpring15DR74/TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/00000/022B08C4-C702-E511-9995-D4856459AC30.root'
+		'/store/mc/RunIISpring15DR74/TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt50ns_MCRUN2_74_V9A-v1/00000/00466730-F801-E511-9594-549F35AF450A.root'
 		)	    
 ##    dropDescendantsOfDroppedBranches=cms.untracked.bool(False),
 ##    inputCommands=cms.untracked.vstring(
@@ -552,7 +552,7 @@ RecElectronEtaMax = cms.untracked.double(2.6),
 RecElectronHLTriggerMatching = cms.untracked.vstring(
 'HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_v.*:hltMu23TrkIsoVVLEle12CaloIdLTrackIdLIsoVLElectronlegTrackIsoFilter', 
 'HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_v.*:hltMu8TrkIsoVVLEle23CaloIdLTrackIdLIsoVLElectronlegTrackIsoFilter', 
-'HLT_Ele22_eta2p1_WP75_Gsf_LooseIsoPFTau20_v.*:hltEle22WP75L1IsoEG20erTau20erGsfTrackIsoFilter',
+'HLT_Ele22_eta2p1_WP75_Gsf_LooseIsoPFTau20_v.*:hltSingleEle22WP75GsfTrackIsoFilter',
 'HLT_Ele22_eta2p1_WP75_Gsf_LooseIsoPFTau20_v.*:hltOverlapFilterIsoEle22WP75GsfLooseIsoPFTau20',
 'HLT_Ele22_eta2p1_WPLoose_Gsf_LooseIsoPFTau20_v.*:hltSingleEle22WPLooseGsfTrackIsoFilter',
 'HLT_Ele22_eta2p1_WPLoose_Gsf_LooseIsoPFTau20_v.*:hltOverlapFilterIsoEle22WPLooseGsfLooseIsoPFTau20',
@@ -672,8 +672,8 @@ process.p = cms.Path(
 #                     process.mvaTrigV025nsCSA14 * 
 #                     process.mvaNonTrigV025nsCSA14 * 
     #process.ak4PFJets*
-    #process.mvaMetSequence*
-    #process.puJetIdSequence*
+    process.mvaMetSequence*
+    process.puJetIdSequence*
     process.makeroottree
     )
 

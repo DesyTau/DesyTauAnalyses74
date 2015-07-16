@@ -213,6 +213,7 @@ public :
    Float_t         tau_chargedIsoPtSum[100];   //[tau_count]
    Float_t         tau_neutralIsoPtSum[100];   //[tau_count]
    Float_t         tau_puCorrPtSum[100];   //[tau_count]
+
    Float_t         tau_leadchargedhadrcand_px[100];   //[tau_count]
    Float_t         tau_leadchargedhadrcand_py[100];   //[tau_count]
    Float_t         tau_leadchargedhadrcand_pz[100];   //[tau_count]
@@ -220,7 +221,7 @@ public :
    Float_t         tau_leadchargedhadrcand_id[100];   //[tau_count]
    Float_t         tau_leadchargedhadrcand_dxy[100];   //[tau_count]
    Float_t         tau_leadchargedhadrcand_dz[100];   //[tau_count]
-   
+
    Float_t         tau_againstMuonLoose3[100];   //[tau_count]
    Float_t         tau_againstMuonTight3[100];   //[tau_count]
    Float_t         tau_againstElectronVLooseMVA5[100];   //[tau_count]
@@ -307,16 +308,16 @@ public :
    Float_t         trigobject_eta[100];   //[trigobject_count]
    Float_t         trigobject_phi[100];   //[trigobject_count]
    Bool_t          trigobject_filters[100][50];   //[trigobject_count]
-   std::vector<std::string>  *run_hltnames;
-   std::vector<std::string>  *run_hltfilters;
-   std::vector<std::string>  *run_hltmufilters;
-   std::vector<std::string>  *run_hltelectronfilters;
-   std::vector<std::string>  *run_hlttaufilters;
-   std::vector<std::string>  *run_hltphotonfilters;
-   std::vector<std::string>  *run_hltjetfilters;
-   std::vector<std::string>  *run_floattaudiscriminators;
-   std::vector<std::string>  *run_binarytaudiscriminators;
-   std::vector<std::string>  *run_btagdiscriminators;
+   std::vector<std::string>  *run_hltnames = new std::vector<std::string>();
+   std::vector<std::string>  *run_hltfilters = new std::vector<std::string>();
+   std::vector<std::string>  *run_hltmufilters = new std::vector<std::string>();
+   std::vector<std::string>  *run_hltelectronfilters = new std::vector<std::string>();
+   std::vector<std::string>  *run_hlttaufilters = new std::vector<std::string>();
+   std::vector<std::string>  *run_hltphotonfilters = new std::vector<std::string>();
+   std::vector<std::string>  *run_hltjetfilters = new std::vector<std::string>();
+   std::vector<std::string>  *run_floattaudiscriminators = new std::vector<std::string>();
+   std::vector<std::string>  *run_binarytaudiscriminators = new std::vector<std::string>();
+   std::vector<std::string>  *run_btagdiscriminators = new std::vector<std::string>();
 
    std::map<std::string, int>* hltriggerresults = new std::map<std::string, int>() ;
    std::vector<std::string>  hltriggerresults_first;
@@ -513,6 +514,7 @@ public :
    TBranch        *b_tau_chargedIsoPtSum;   //!
    TBranch        *b_tau_neutralIsoPtSum;   //!
    TBranch        *b_tau_puCorrPtSum;   //!
+
    TBranch        *b_tau_leadchargedhadrcand_px;   //[tau_count]
    TBranch        *b_tau_leadchargedhadrcand_py;   //[tau_count]
    TBranch        *b_tau_leadchargedhadrcand_pz;   //[tau_count]
@@ -520,6 +522,7 @@ public :
    TBranch        *b_tau_leadchargedhadrcand_id;   //[tau_count]
    TBranch        *b_tau_leadchargedhadrcand_dxy;   //[tau_count]
    TBranch        *b_tau_leadchargedhadrcand_dz;   //[tau_count]
+
    TBranch        *b_tau_againstMuonLoose3;   //!
    TBranch        *b_tau_againstMuonTight3;   //!
    TBranch        *b_tau_againstElectronVLooseMVA5;   //!
@@ -919,7 +922,7 @@ void AC1B::Init(TTree *tree)
    fChain->SetBranchAddress("tau_chargedIsoPtSum", tau_chargedIsoPtSum, &b_tau_chargedIsoPtSum);
    fChain->SetBranchAddress("tau_neutralIsoPtSum", tau_neutralIsoPtSum, &b_tau_neutralIsoPtSum);
    fChain->SetBranchAddress("tau_puCorrPtSum", tau_puCorrPtSum, &b_tau_puCorrPtSum);
-  
+
    fChain->SetBranchAddress("tau_leadchargedhadrcand_px", tau_leadchargedhadrcand_px, &b_tau_leadchargedhadrcand_px);
    fChain->SetBranchAddress("tau_leadchargedhadrcand_py", tau_leadchargedhadrcand_py, &b_tau_leadchargedhadrcand_py);
    fChain->SetBranchAddress("tau_leadchargedhadrcand_pz", tau_leadchargedhadrcand_pz, &b_tau_leadchargedhadrcand_pz);
@@ -927,7 +930,7 @@ void AC1B::Init(TTree *tree)
    fChain->SetBranchAddress("tau_leadchargedhadrcand_id", tau_leadchargedhadrcand_id, &b_tau_leadchargedhadrcand_id);
    fChain->SetBranchAddress("tau_leadchargedhadrcand_dxy", tau_leadchargedhadrcand_dxy, &b_tau_leadchargedhadrcand_dxy);
    fChain->SetBranchAddress("tau_leadchargedhadrcand_dz", tau_leadchargedhadrcand_dz, &b_tau_leadchargedhadrcand_dz);
-  
+
    fChain->SetBranchAddress("tau_againstMuonLoose3", tau_againstMuonLoose3, &b_tau_againstMuonLoose3);
    fChain->SetBranchAddress("tau_againstMuonTight3", tau_againstMuonTight3, &b_tau_againstMuonTight3);
    fChain->SetBranchAddress("tau_againstElectronVLooseMVA5", tau_againstElectronVLooseMVA5, &b_tau_againstElectronVLooseMVA5);

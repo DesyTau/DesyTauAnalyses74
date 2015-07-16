@@ -15,6 +15,7 @@
 //#include "DataFormats/METReco/interface/PFMEtSignCovMatrix.h"
 //#include "DataFormats/JetReco/interface/PileupJetIdentifier.h"
 #include "RecoBTag/BTagTools/interface/SignedImpactParameter3D.h"
+
 #include "TrackingTools/PatternTools/interface/TwoTrackMinimumDistance.h"
 #include "RecoVertex/KinematicFitPrimitives/interface/KinematicParticleFactoryFromTransientTrack.h"
 #include "RecoEgamma/EgammaTools/interface/ConversionTools.h"
@@ -1075,6 +1076,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   	}
       }
     }
+  //  std::cout << std::endl;
 
   if(cbeamspot)
     {
@@ -1674,9 +1676,6 @@ unsigned int NTupleMaker::AddMuons(const edm::Event& iEvent)
 	muon_phi[muon_count] = (*Muons)[i].phi();
 	muon_charge[muon_count] = (*Muons)[i].charge();
 
-
-
-
 	const pat::Muon &lep = (*Muons)[i];
 	muon_miniISO[muon_count]=getPFIsolation(pfcands, dynamic_cast<const reco::Candidate *>(&lep), 0.05, 0.2, 10., false);
 
@@ -1707,7 +1706,8 @@ unsigned int NTupleMaker::AddMuons(const edm::Event& iEvent)
 	muon_isPF[muon_count] = (*Muons)[i].isPFMuon();
 	muon_isTight[muon_count] = (*Muons)[i].isTightMuon(primvertex); 
 	muon_isLoose[muon_count] = (*Muons)[i].isLooseMuon();
-	  
+	muon_isGlobal[muon_count] = (*Muons)[i].isGlobalMuon();
+
 	muon_chargedHadIso[muon_count] = (*Muons)[i].chargedHadronIso();
 	muon_neutralHadIso[muon_count] = (*Muons)[i].neutralHadronIso();
 	muon_photonIso[muon_count] = (*Muons)[i].photonIso();
@@ -1730,41 +1730,43 @@ unsigned int NTupleMaker::AddMuons(const edm::Event& iEvent)
         muon_r04_sumPUPt[muon_count] = (*Muons)[i].pfIsolationR04().sumPUPt;
 
 	TrackRef innertrack = (*Muons)[i].innerTrack();
+	TrackRef bestTrack  = (*Muons)[i].muonBestTrack();
 
 	muon_combQ_trkKink[muon_count] = (*Muons)[i].combinedQuality().trkKink;  
 	muon_combQ_chi2LocalPosition[muon_count] = (*Muons)[i].combinedQuality().chi2LocalPosition;
 	muon_segmentComp[muon_count] = (*Muons)[i].segmentCompatibility();
-	muon_validFraction[muon_count] = 0;
 
+	if (bestTrack.isNonnull()) {
+	  muon_dxy[muon_count]    = bestTrack->dxy(pv_position);
+	  muon_dz[muon_count]     = bestTrack->dz(pv_position);
+	  muon_dxyerr[muon_count]    = bestTrack->dxyError();
+	  muon_dzerr[muon_count]     = bestTrack->dzError();
+	}
+	else {
+	  muon_dxy[muon_count]    = -9999;
+	  muon_dz[muon_count]     = -9999;
+	  muon_dxyerr[muon_count]    = -9999;
+	  muon_dzerr[muon_count]     = -9999;
+	}
 
 	if(innertrack.isNonnull())
 	  {
-	    TransientTrack TTrack = TTrackBuilder->build(innertrack);
-	    TrajectoryStateClosestToPoint TTrackState = TTrack.trajectoryStateClosestToPoint(GlobalPoint(pv_position.x(), pv_position.y(), pv_position.z()));
 	    muon_innerTrack[muon_count] = true;
-	    muon_dxy[muon_count]    = TTrackState.perigeeParameters().transverseImpactParameter();
-	    muon_dxyerr[muon_count] = TTrackState.perigeeError().transverseImpactParameterError();
-	    muon_dz[muon_count]     = TTrackState.perigeeParameters().longitudinalImpactParameter();
-	    muon_dzerr[muon_count]  = TTrackState.perigeeError().longitudinalImpactParameterError();
 	    muon_nPixelHits[muon_count] = innertrack->hitPattern().numberOfValidPixelHits();
 	    muon_nTrackerHits[muon_count] = innertrack->hitPattern().trackerLayersWithMeasurement();
 	    muon_validFraction[muon_count] = innertrack->validFraction();
-
 	  }
 	else 
 	  {
 	    muon_innerTrack[muon_count] = false;
-	    muon_dxy[muon_count] = -9999;
-	    muon_dxyerr[muon_count] = -9999;
-	    muon_dxy[muon_count] = -9999;
-	    muon_dxyerr[muon_count] = -9999;
 	    muon_nPixelHits[muon_count] = 0; 
 	    muon_nTrackerHits[muon_count] = 0;
+	    muon_validFraction[muon_count] = 0;
 	  }
-	
-	bool goodGlb = muon_isGlobal[muon_count] && muon_normChi2[muon_count]  < 3 
+
+	bool goodGlb = muon_isGlobal[muon_count] && muon_normChi2[muon_count]  < 3 && muon_normChi2[muon_count] > 0 
 	 && muon_combQ_chi2LocalPosition[muon_count] < 12 && muon_combQ_trkKink[muon_count] < 20;
-	muon_isMedium[muon_count] =  muon_validFraction[muon_count] >= 0.8 && muon_segmentComp[muon_count] >= (goodGlb ? 0.303 : 0.451);
+	muon_isMedium[muon_count] =  muon_isLoose[muon_count] && muon_validFraction[muon_count] > 0.8 && muon_segmentComp[muon_count] > (goodGlb ? 0.303 : 0.451);
 
 
 	muon_count++;
@@ -2431,7 +2433,9 @@ unsigned int NTupleMaker::AddPFJets(const edm::Event& iEvent, const edm::EventSe
 
   edm::Handle<reco::PFJetCollection> ak4jets;
   //iEvent.getByLabel(edm::InputTag("calibratedAK4PFJetsForPFMVAMEt"), ak4jets);
-  iEvent.getByLabel(edm::InputTag("ak4PFJets"), ak4jets);
+  //iEvent.getByLabel(edm::InputTag("ak4PFJets"), ak4jets);
+  //iEvent.getByLabel(edm::InputTag("AK4PFCHS"), ak4jets);
+  iEvent.getByLabel(edm::InputTag("slimmedJets"), ak4jets);
   
   //	edm::Handle<edm::ValueMap<int> > puJetIdFlagFull;
   //	iEvent.getByLabel(edm::InputTag("pileupJetIdProducer","fullId"), puJetIdFlagFull);
@@ -2524,7 +2528,7 @@ unsigned int NTupleMaker::AddPFJets(const edm::Event& iEvent, const edm::EventSe
 	    {
 	      pfjet_btag[pfjet_count][n] = -1000;
 	      if(cBtagDiscriminators[n] != "F"){
-		//		std::cout << " " << cBtagDiscriminators.at(n) << "  : " <<  (*pfjets)[i].bDiscriminator(cBtagDiscriminators[n]) << std::endl;
+	//			std::cout << " " << cBtagDiscriminators.at(n) << "  : " <<  (*pfjets)[i].bDiscriminator(cBtagDiscriminators[n]) << std::endl;
 		pfjet_btag[pfjet_count][n] = (*pfjets)[i].bDiscriminator(cBtagDiscriminators[n]) ;
 	      }
 	    }

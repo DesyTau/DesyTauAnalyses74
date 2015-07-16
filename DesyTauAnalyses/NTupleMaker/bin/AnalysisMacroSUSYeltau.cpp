@@ -57,15 +57,43 @@ int main(int argc, char * argv[]) {
   const Float_t isoMuonHighCut = cfg.get<Float_t>("isoMuonHighCut");
   const bool applyMuonId     = cfg.get<bool>("ApplyMuonId");
   
+
+  const string lowPtLegMuon  = cfg.get<string>("LowPtLegMuon");
+  const string highPtLegMuon = cfg.get<string>("HighPtLegMuon");
+
+
+
+
+  const string El32Leg  = cfg.get<string>("El32Leg");
+  const string El22Tau20ElLegA  = cfg.get<string>("El22Tau20ElLegA");
+  const string El22Tau20ElLegB  = cfg.get<string>("El22Tau20ElLegB");
+  const string El22Tau20TauLegA  = cfg.get<string>("El22Tau20TauLegA");
+  const string El22Tau20TauLegB  = cfg.get<string>("El22Tau20TauLegB");
+
+
+  const Float_t leadchargedhadrcand_dz = cfg.get<Float_t>("leadchargedhadrcand_dz");
+  const Float_t leadchargedhadrcand_dxy = cfg.get<Float_t>("leadchargedhadrcand_dxy");
+
+
+//  const float ndofVertexCut  = cfg.get<float>("NdofVertexCut");  
+ 
+//  const float zVertexCut     = cfg.get<float>("ZVertexCut");
+//  const float dVertexCut     = cfg.get<float>("DVertexCut");
+
+
   // kinematic cuts on Jets
   const Float_t etaJetCut   = cfg.get<Float_t>("etaJetCut");
   const Float_t ptJetCut   = cfg.get<Float_t>("ptJetCut");
   
   
   // topological cuts
-  const Float_t dRleptonsCut   = cfg.get<Float_t>("dRleptonsCut");
+  const Float_t dRleptonsCut   = cfg.get<Float_t>("dRleptonsCuteltau");
   const Float_t dZetaCut       = cfg.get<Float_t>("dZetaCut");
+  const float deltaRTrigMatch = cfg.get<float>("DRTrigMatch");
   const bool oppositeSign    = cfg.get<bool>("oppositeSign");
+  const bool isIsoR03 = cfg.get<bool>("IsIsoR03");
+ 
+	// tau
   const Float_t taupt    = cfg.get<Float_t>("taupt");
   const Float_t taueta    = cfg.get<Float_t>("taueta");
   const Float_t decayModeFinding    = cfg.get<Float_t>("decayModeFinding");
@@ -76,17 +104,32 @@ int main(int argc, char * argv[]) {
   const Float_t   byCombinedIsolationDeltaBetaCorrRaw3Hits = cfg.get<Float_t>("byCombinedIsolationDeltaBetaCorrRaw3Hits");
   
 
+  const string lowPtLegElectron  = cfg.get<string>("LowPtLegElectron");
+  const string highPtLegElectron = cfg.get<string>("HighPtLegElectron");
+
+  TString LowPtLegElectron(lowPtLegElectron);
+  TString HighPtLegElectron(highPtLegElectron);
+  
+  TString LowPtLegMuon(lowPtLegMuon);
+  TString HighPtLegMuon(highPtLegMuon);
+  
+  TString Elecs24Leg(El32Leg);
+  TString Elecs22Tau20ElLegA(El22Tau20ElLegA);
+  TString Elecs22Tau20ElLegB(El22Tau20ElLegB);
+  TString Elecs22Tau20TauLegA(El22Tau20TauLegA);
+  TString Elecs22Tau20TauLegB(El22Tau20TauLegB);
+
 
   const Float_t Lumi   = cfg.get<Float_t>("Lumi");
-
   const Float_t bTag 	     = cfg.get<Float_t>("bTag");
   const Float_t metcut         = cfg.get<Float_t>("metcut");
  
   CutList.clear();
   CutList.push_back("No cut");
-  CutList.push_back("Trigger");
-  CutList.push_back("$\e$");
+  CutList.push_back("$mu$");
   CutList.push_back("$tau_h$");
+  CutList.push_back("$DeltaR<0.3$");
+  CutList.push_back("Trigger");
   CutList.push_back("2nd lept-Veto");
   CutList.push_back("3rd lept-Veto");
   CutList.push_back("b-Veto ");
@@ -124,7 +167,6 @@ int main(int argc, char * argv[]) {
     }
 
   if (XSec<0) {cout<<" Something probably wrong with the xsecs...please check  - the input was "<<argv[2]<<endl;return 0;}
-
 
 
 
@@ -168,7 +210,7 @@ int main(int argc, char * argv[]) {
   while (fileList0 >> dummy) nTotalFiles++;
  
   SetupHists(CutNumb); 
-  //nTotalFiles=10;
+ // if (nTotalFiles>400) nTotalFiles=250;
   for (int iF=0; iF<nTotalFiles; ++iF) {
 
     std::string filen;
@@ -210,7 +252,8 @@ int main(int argc, char * argv[]) {
      
       analysisTree.GetEntry(iEntry);
       nEvents++;
-       
+     histWeights->Fill(1,analysisTree.genweight);
+         
       JetsMV.clear();
       ElMV.clear();
       TauMV.clear();
@@ -222,7 +265,7 @@ int main(int argc, char * argv[]) {
       METV.SetPx(analysisTree.pfmet_ex);	      
       METV.SetPy(analysisTree.pfmet_ey);
  
-      if (nEvents%10000==0) 
+     if (nEvents%10000==0) 
 	cout << "      processed " << nEvents << " events" << endl; 
  
 
@@ -256,6 +299,7 @@ int main(int argc, char * argv[]) {
       Double_t EvWeight = 1.0;
       EvWeight *= weight ;
       
+      vector <string> ss; ss.push_back(SelectionSign.c_str());
       FillMainHists(iCut, EvWeight, ElMV, MuMV, TauMV,JetsMV,METV, analysisTree, SelectionSign);
       CFCounter[iCut]+= weight;
       iCFCounter[iCut]++;
@@ -307,36 +351,109 @@ int main(int argc, char * argv[]) {
       // 	}
       // }
 
-      // trigger selection
  
       //selecTable.Fill(1,0, weight );      
       bool trigAccept = false;
+      
+      unsigned int nElecs24Leg = 0;
+      bool isElecs24Leg = false;
+ 
+      unsigned int nElecs22Tau20ElLegA = 0;
+      bool isElecs22Tau20ElLegA = false;
+   
+      unsigned int nElecs22Tau20ElLegB = 0;
+      bool isElecs22Tau20ElLegB = false;
 
-      for (int i=0; i<kMaxhltriggerresults; ++i) {
-	//  for muel if ((i==5||i==6)&&  analysisTree.hltriggerresults_second[i]==1) {
-//for mutau	if ((i==0 || i==2)&&  analysisTree.hltriggerresults_second[i]==1) {
-	if ( ( i==2 || i==3)  &&  analysisTree.hltriggerresults_second[i]==1) {
-	//    	  std::cout << analysisTree.run_hltnames->at(i) << " : " << analysisTree.hltriggerresults_second[i] << std::endl;
-	  trigAccept = true;
+      unsigned int nElecs22Tau20TauLegA = 0;
+      bool isElecs22Tau20TauLegA = false;
+
+      unsigned int nElecs22Tau20TauLegB = 0;
+      bool isElecs22Tau20TauLegB = false;
+
+      unsigned int nfilters = analysisTree.run_hltfilters->size();
+          //  std::cout << "nfiltres = " << nfilters << std::endl;
+      for (unsigned int i=0; i<nfilters; ++i) {
+	//	std::cout << "HLT Filter : " << i << " = " << analysisTree.run_hltfilters->at(i) << std::endl;
+	TString HLTFilter(analysisTree.run_hltfilters->at(i));
+
+	if (HLTFilter==Elecs24Leg) {
+      	  nElecs24Leg = i;
+	  isElecs24Leg = true;
 	}
-      }
-      if (!trigAccept) continue;
+	if (HLTFilter==Elecs22Tau20ElLegA) {
+      	  nElecs22Tau20ElLegA = i;
+	  isElecs22Tau20ElLegA = true;
+	}
+	
+	if (HLTFilter==Elecs22Tau20ElLegB) {
+      	  nElecs22Tau20ElLegB = i;
+	  isElecs22Tau20ElLegB = true;
+	}
 
-      //Trigger
-      FillMainHists(iCut, EvWeight, ElMV, MuMV, TauMV,JetsMV,METV,analysisTree, SelectionSign);
-      CFCounter[iCut]+= weight;
-      iCFCounter[iCut]++;
-      iCut++;
+
+	if (HLTFilter==Elecs22Tau20ElLegB) {
+      	  nElecs22Tau20ElLegB = i;
+	  isElecs22Tau20ElLegB = true;
+	}
+
+
+	if (HLTFilter==Elecs22Tau20TauLegA) {
+      	  nElecs22Tau20TauLegA = i;
+	  isElecs22Tau20TauLegA = true;
+	}
+
+	if (HLTFilter==Elecs22Tau20TauLegB) {
+      	  nElecs22Tau20TauLegB = i;
+	  isElecs22Tau20TauLegB = true;
+	}
+
+
+ 	}
+
+
+      if (!isElecs24Leg) {
+	std::cout << "HLT filter " << Elecs24Leg << " not found" << std::endl;
+	return(-1);
+      }
+      if (!isElecs22Tau20ElLegA) {
+	std::cout << "HLT filter " << Elecs22Tau20ElLegA << " not found" << std::endl;
+	return(-1);
+      }
+      if (!isElecs22Tau20ElLegB) {
+	std::cout << "HLT filter " << Elecs22Tau20ElLegB << " not found" << std::endl;
+	return(-1);
+      }
+      if (!isElecs22Tau20TauLegA) {
+	std::cout << "HLT filter " << Elecs22Tau20TauLegA << " not found" << std::endl;
+	return(-1);
+      }
+
+      if (!isElecs22Tau20TauLegB) {
+	std::cout << "HLT filter " << Elecs22Tau20TauLegB << " not found" << std::endl;
+	return(-1);
+      }
+/*
+            std::cout << "LowPtE  : " << LowPtLegElectron << " : " << nLowPtLegElectron << std::endl;
+            std::cout << "HighPtE : " << HighPtLegElectron << " : " << nHighPtLegElectron << std::endl;
+            std::cout << "LowPtM  : " << LowPtLegMuon << " : " << nLowPtLegMuon << std::endl;
+            std::cout << "HighPtM : " << HighPtLegMuon << " : " << nHighPtLegMuon << std::endl;
+            std::cout << std::endl;
+      //      continue;
+      // vertex cuts
+      if (fabs(analysisTree.primvertex_z)>zVertexCut) continue;
+      if (analysisTree.primvertex_ndof<ndofVertexCut) continue;
+      float dVertex = (analysisTree.primvertex_x*analysisTree.primvertex_x+
+		       analysisTree.primvertex_y*analysisTree.primvertex_y);
+      if (dVertex>dVertexCut) continue;
+*/
+
       /////now clear the Mu.El.Jets again to fill them again after cleaning
       MuMV.clear();
       ElMV.clear();
-      // electron selection
+      TauMV.clear();
       unsigned int el_index=-1;
-      unsigned int tau_index=-1;
-
-
-
-
+      float isoElMin = 1e+10;
+      bool el_iso=false;
 	vector<int> electrons; electrons.clear();
       for (unsigned int ie = 0; ie<analysisTree.electron_count; ++ie) {
 	electronPtAllH->Fill(analysisTree.electron_pt[ie],weight);
@@ -357,33 +474,39 @@ int main(int argc, char * argv[]) {
 	bool electronMvaId = electronMvaIdTight(analysisTree.electron_superclusterEta[ie],
 						analysisTree.electron_mva_id_nontrigPhys14[ie]);
 	if (!electronMvaId&&applyElectronId) continue;
+
+	    if (relIso<isoElMin) {
+	      isoElMin  = relIso;
+	      el_index = ie;
+	      el_iso=true;
+	    //cout<<" RelIso " <<relIso <<"  "<<el_index<<endl;
+	    }
+
+	    if (relIso!=0 && relIso==isoElMin && ie != el_index) {
+             analysisTree.electron_pt[ie] > analysisTree.electron_pt[el_index] ? el_index = ie : el_index = el_index;
+	    cout<<" found a pair  " <<relIso <<"  "<<el_index<<"  "<<ie<<endl;
+	  }
+
 	electrons.push_back(ie);
         ElV.SetPtEtaPhiM(analysisTree.electron_pt[ie], analysisTree.electron_eta[ie], analysisTree.electron_phi[ie], electronMass);
         ElMV.push_back(ElV);
 	LeptMV.push_back(ElV);
-        //hel_miniISO[1]->Fill(analysisTree.electron_miniISO[ie],weight);
+
       }
 
-      sort(LeptMV.begin(), LeptMV.end(),ComparePt);
+      sort(LeptMV.begin(), LeptMV.end(),ComparePt); 
       if (LeptMV.size() == 0 ) continue; 
-
-       el_index=electrons[0];
+      // el_index=electrons[0];
+      if (electrons.size()==0 || !el_iso) continue;
 
       FillMainHists(iCut, EvWeight, ElMV, MuMV, TauMV,JetsMV,METV, analysisTree, SelectionSign);
       CFCounter[iCut]+= weight;
       iCFCounter[iCut]++;
       iCut++;
 
-
-//*================================================
-//in future, if needed to add cone R03 for isolation
-//electron_chargedHadIso => r03_sumChargedHadronPt
-//electron_neutralHadIso => r03_sumNeutralHadronEt
-//electron_phostonIso => r03_sumPhotonEt
-//puIso => r03_sumPUPt
-
-//================================================
-
+      unsigned int tau_index=-1;
+      float isoTauMin = 1e+10;
+      bool tau_iso = false;
       vector<int> tau; tau.clear();
       for (unsigned int it = 0; it<analysisTree.tau_count; ++it) {
 	tauPtAllH->Fill(analysisTree.tau_pt[it],weight);
@@ -391,26 +514,151 @@ int main(int argc, char * argv[]) {
 
 	if (analysisTree.tau_pt[it] < 20 || fabs(analysisTree.tau_eta[it])> 2.3) continue;
 	if (analysisTree.tau_decayModeFinding[it]<decayModeFinding && analysisTree.tau_decayModeFindingNewDMs[it]<decayModeFindingNewDMs) continue;
+	if (analysisTree.tau_decayModeFindingNewDMs[it]<decayModeFindingNewDMs) continue;
+	if ( fabs(analysisTree.tau_leadchargedhadrcand_dz[it])> leadchargedhadrcand_dz) continue;
+	
 	if (analysisTree.tau_againstElectronVLooseMVA5[it]<againstElectronVLooseMVA5) continue;
 	if (analysisTree.tau_againstMuonTight3[it]<againstMuonTight3) continue;
-	if ( fabs(analysisTree.tau_vertexz[it] - analysisTree.primvertex_z ) > vertexz ) continue;
+	//phys14 if ( fabs(analysisTree.tau_vertexz[it] - analysisTree.primvertex_z ) > vertexz ) continue;
 	if (analysisTree.tau_byCombinedIsolationDeltaBetaCorrRaw3Hits[it] > byCombinedIsolationDeltaBetaCorrRaw3Hits ) continue;
+
+	Float_t  tauIso = analysisTree.tau_byCombinedIsolationDeltaBetaCorrRaw3Hits[it];
+
+	    if (tauIso<isoTauMin) {
+	      isoTauMin  = tauIso;
+	      tau_index = it;
+	      tau_iso=true;
+	    //cout<<" RelIso " <<relIso <<"  "<<el_index<<endl;
+	    }
+
+	    if (tauIso!=0 && tauIso==isoTauMin && it != tau_index) {
+             analysisTree.tau_pt[it] > analysisTree.tau_pt[tau_index] ? tau_index = it : tau_index = tau_index;
+	    cout<<" found a pair  " <<tauIso <<"  "<<tau_index<<"  "<<it<<endl;
+	  }
+
+
+	TauV.SetPtEtaPhiM(analysisTree.tau_pt[it], analysisTree.tau_eta[it], analysisTree.tau_phi[it], tauMass);
+	TauMV.push_back(TauV);
 	tau.push_back(it);
 
-
       }
-
-      tau_index=tau[0];
-   
-      float dR = deltaR(analysisTree.electron_eta[electrons[0]],analysisTree.electron_phi[electrons[0]],
-			    analysisTree.muon_eta[tau[0]],analysisTree.muon_phi[tau[0]]);
-
-      if (dR<dRleptonsCut) continue;
-
+	
+      if (tau.size()==0 || !tau_iso) continue;
+      //tau_index=tau[0];
+	
+      //cout<<" tau, elects " <<tau_index<<"  "<<el_index<<"  "<<endl;
       FillMainHists(iCut, EvWeight, ElMV, MuMV, TauMV,JetsMV,METV, analysisTree, SelectionSign);
       CFCounter[iCut]+= weight;
       iCFCounter[iCut]++;
       iCut++;
+
+      float dR = deltaR(analysisTree.tau_eta[tau_index],analysisTree.tau_phi[tau_index],
+			    analysisTree.electron_eta[el_index],analysisTree.electron_phi[el_index]);
+
+      if (dR<dRleptonsCut) continue;
+   
+      FillMainHists(iCut, EvWeight, ElMV, MuMV, TauMV,JetsMV,METV, analysisTree, SelectionSign);
+      CFCounter[iCut]+= weight;
+      iCFCounter[iCut]++;
+      iCut++;
+
+
+	bool isEl32 = false;
+	bool isEl22Tau20ElLegA = false;
+	bool isEl22Tau20ElLegB = false;
+ 
+        for (unsigned int ie=0; ie<electrons.size(); ++ie) {
+        unsigned int eIndex  = electrons.at(ie);
+
+/*
+	float neutralHadIsoMu = analysisTree.muon_neutralHadIso[mIndex];
+	float photonIsoMu = analysisTree.muon_photonIso[mIndex];
+	float chargedHadIsoMu = analysisTree.muon_chargedHadIso[mIndex];
+	float puIsoMu = analysisTree.muon_puIso[mIndex];
+	if (isIsoR03) {
+	  neutralHadIsoMu = analysisTree.muon_r03_sumNeutralHadronEt[mIndex];
+	  photonIsoMu = analysisTree.muon_r03_sumPhotonEt[mIndex];
+	  chargedHadIsoMu = analysisTree.muon_r03_sumChargedHadronPt[mIndex];
+	  puIsoMu = analysisTree.muon_r03_sumPUPt[mIndex];
+	}
+	float neutralIsoMu = neutralHadIsoMu + photonIsoMu - 0.5*puIsoMu;
+	neutralIsoMu = TMath::Max(float(0),neutralIsoMu); 
+	float absIsoMu = chargedHadIsoMu + neutralIsoMu;
+	float relIsoMu = absIsoMu/analysisTree.muon_pt[mIndex];
+*/
+
+	for (unsigned int iT=0; iT<analysisTree.trigobject_count; ++iT) {
+	  if (analysisTree.trigobject_filters[iT][nElecs24Leg]) { 
+	    float dRtrig = deltaR(analysisTree.electron_eta[eIndex],analysisTree.electron_phi[eIndex],
+				  analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
+	    if (dRtrig<deltaRTrigMatch) {
+	      isEl32 = true;
+	    }
+	  }
+	
+	  if (analysisTree.trigobject_filters[iT][nElecs22Tau20ElLegA]) { 
+	    float dRtrig = deltaR(analysisTree.electron_eta[eIndex],analysisTree.electron_phi[eIndex],
+				  analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
+	    if (dRtrig<deltaRTrigMatch) {
+	      isEl22Tau20ElLegA = true;
+	    }
+	  }
+
+	  if (analysisTree.trigobject_filters[iT][nElecs22Tau20ElLegB ]) { 
+	    float dRtrig = deltaR(analysisTree.electron_eta[eIndex],analysisTree.electron_phi[eIndex],
+				  analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
+	    if (dRtrig<deltaRTrigMatch) {
+	      isEl22Tau20ElLegB  = true;
+				}
+			}
+
+
+		}
+	}
+
+	bool isEl22Tau20TauLegA = false;
+	bool isEl22Tau20TauLegB = false;
+
+        for (unsigned int it=0; it<tau.size(); ++it) {
+        unsigned int tIndex  = tau.at(it);
+	for (unsigned int iT=0; iT<analysisTree.trigobject_count; ++iT) {
+	 
+	  if (analysisTree.trigobject_filters[iT][nElecs22Tau20TauLegA]) { 
+	    float dRtrig = deltaR(analysisTree.tau_eta[tIndex],analysisTree.tau_phi[tIndex],
+				  analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
+	    if (dRtrig<deltaRTrigMatch) {
+	      isEl22Tau20TauLegA = true;
+	    }
+	  }
+
+	  if (analysisTree.trigobject_filters[iT][nElecs22Tau20TauLegB]) { 
+	    float dRtrig = deltaR(analysisTree.tau_eta[tIndex],analysisTree.tau_phi[tIndex],
+				  analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
+	    if (dRtrig<deltaRTrigMatch) {
+	      isEl22Tau20TauLegB = true;
+	    }
+	  }
+
+	}
+	}
+
+     	if ( isEl32) trigAccept=true;
+     	if ( ( isEl22Tau20ElLegA && isEl22Tau20ElLegB) && ( isEl22Tau20TauLegA&& isEl22Tau20TauLegB)) trigAccept=true;
+	
+
+        if (!trigAccept) continue;
+
+
+
+      //Trigger
+      //FillMainHists(iCut, EvWeight, ElMV, MuMV, JetsMV,METV,analysisTree, SelectionSign);
+      FillMainHists(iCut, EvWeight, ElMV, MuMV, TauMV,JetsMV,METV, analysisTree, SelectionSign);
+      CFCounter[iCut]+= weight;
+      iCFCounter[iCut]++;
+      iCut++;
+      // electron selection
+
+
 
       bool ElVeto=false;
       if (doElVeto){
@@ -439,8 +687,7 @@ int main(int argc, char * argv[]) {
 		    ElVeto=true;
 		  	}
 		}
-	}
-
+ 	}
       if (ElVeto) continue;
       FillMainHists(iCut, EvWeight, ElMV, MuMV, TauMV,JetsMV,METV, analysisTree, SelectionSign);
       CFCounter[iCut]+= weight;
@@ -541,10 +788,10 @@ int main(int argc, char * argv[]) {
 
       bool btagged= false;
       for (unsigned int ib = 0; ib <analysisTree.pfjet_count;ib++){
-	if (analysisTree.pfjet_btag[ib][6]  > bTag) btagged = true;
+	if (analysisTree.pfjet_btag[ib][8]  > bTag) btagged = true;
 	//cout<<" pfjet_b "<<ib<<"  "<<analysisTree.pfjet_btag[ib][6]<<endl;
       }
-      if (btagged || JetsMV.size()>3) continue;
+      if (btagged ||  JetsMV.size() >3) continue;
 
       // Jets
       FillMainHists(iCut, EvWeight, ElMV, MuMV, TauMV,JetsMV,METV, analysisTree, SelectionSign);
@@ -605,12 +852,15 @@ int main(int argc, char * argv[]) {
     delete file_;
   }
 
-  cout << endl << "Finished event loop" << endl;
-  for (int i=0;i<CutNumb;++i){
-    CFCounter[i] *= Float_t(XSec*Lumi/inputEventsH->GetSum());
+
+cout<< " " <<histWeights->GetSumOfWeights()<<"  "<<inputEventsH->GetSum()<<endl;
+
+for (int i=0;i<CutNumb;++i){
+    CFCounter[i] *= Float_t(XSec*Lumi/( histWeights->GetSumOfWeights()));
     if (iCFCounter[i] <0.2) statUnc[i] =0;
     else statUnc[i] = CFCounter[i]/sqrt(iCFCounter[i]);
   }
+
 
   //write out cutflow
   ofstream tfile;
@@ -626,7 +876,7 @@ int main(int argc, char * argv[]) {
     {
       tfile << CutList[ci]<<"\t & \t"
 	    << CFCounter[ci]  <<"\t & \t"<< statUnc[ci] <<"\t & \t"<< iCFCounter[ci] << endl;
-      CutFlow->SetBinContent(1+ci,CFCounter[ci]);
+      CutFlow->SetBinContent(1+ci,iCFCounter[ci]);
     }
 
   tfile.close();
@@ -635,8 +885,6 @@ int main(int argc, char * argv[]) {
   //tfile1.open(textfile_Con);
   //tfile1 << "########################################" << endl;
   //tfile1 << "RCS:" << endl;
-
-
 
 
 
@@ -652,8 +900,11 @@ int main(int argc, char * argv[]) {
   hxsec->Fill(XSec);
   hxsec->Write();
   inputEventsH->Write();
+  histWeights->Write();
+  
   CutFlow->Write();
 
+  /*
   muonPtAllH->Write();
   electronPtAllH->Write();
 
@@ -683,8 +934,8 @@ int main(int argc, char * argv[]) {
   dileptondRSelH ->Write();
   ETmissSelH ->Write();
   MtSelH ->Write();
+*/
   DZetaSelH ->Write();
-
   /*
     for(int cj = 0; cj < CutNumb; cj++)
     {

@@ -672,8 +672,8 @@ process.p = cms.Path(
 #                     process.mvaTrigV025nsCSA14 * 
 #                     process.mvaNonTrigV025nsCSA14 * 
     #process.ak4PFJets*
-    #process.mvaMetSequence*
-    #process.puJetIdSequence*
+    process.mvaMetSequence*
+    process.puJetIdSequence*
     process.makeroottree
     )
 

@@ -653,6 +653,7 @@ RecJetBtagDiscriminators = cms.untracked.vstring(
 'simpleSecondaryVertexHighPurBJetTags',
 'combinedInclusiveSecondaryVertexV2BJetTags',
 'pfCombinedSecondaryVertexBJetTags',
+'pfCombinedInclusiveSecondaryVertexV2BJetTags',
 'combinedMVABJetTags'
 ),
 RecJetNum = cms.untracked.int32(0),
