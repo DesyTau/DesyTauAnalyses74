@@ -145,3 +145,17 @@
  <use name="boost_program_options"/>
  <use name="DesyTauAnalyses/NTupleMaker"/>
 </bin>
+
+<bin   file="analyzerTauTau_Summer15.cc"  name="analyzerTauTau">
+  <use   name="DataFormats/FWLite"/>
+  <use   name="FWCore/FWLite"/>
+  <use   name="FWCore/ParameterSet"/>
+  <use   name="FWCore/PythonParameterSet"/>
+  <use   name="TauAnalysis/SVfitStandalone"/>
+  <use   name="TauAnalysis/CandidateTools"/>
+  <use   name="PhysicsTools/FWLite"/>
+  <use   name="PhysicsTools/Utilities"/>
+  <use   name="roofit"/>
+  <use   name="root"/>
+  <use   name="rootgraphics"/>
+</bin>
