@@ -899,11 +899,16 @@ int main(int argc, char * argv[]) {
 	if (dR1<dRJetLeptonCut) continue;
 	if (dR2<dRJetLeptonCut) continue;
 
+	std::cout<<"pass dr cut"<<std::endl;
+	
 	// apply pf jet Id
 	if (applyJetPfId&&!isPFJetId) continue;
-
+	std::cout<<"pass pf id cut"<<std::endl;
+	
+	
 	// pu jet Id
 	if (applyJetPuId&&!puJetIdLoose(analysisTree.pfjet_eta[jet],analysisTree.pfjet_pu_jet_full_mva[jet])) continue;
+	std::cout<<"pass pu jet id cut"<<std::endl;
 	
 	jetspt20.push_back(jet);
 
