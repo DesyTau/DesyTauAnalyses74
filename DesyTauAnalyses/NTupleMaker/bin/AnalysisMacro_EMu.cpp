@@ -400,6 +400,7 @@ int main(int argc, char * argv[]) {
   TH1F * nJets20H = new TH1F("nJets20H","",10,-0.5,9.5);
   TH1F * nBLooseJetsH = new TH1F("nBLooseJetsH","",10,-0.5,9.5);
   TH1F * nBMediumJetsH = new TH1F("nBMediumJetsH","",10,-0.5,9.5);
+  TH1F * nVertH = new TH1F("nVertH","",51,-0.5,50.5);
 
   // histograms (dilepton selection + DZeta)
   TH1F * electronPtDZetaCutH  = new TH1F("electronPtDZetaCutH","",40,0,200);
@@ -417,7 +418,7 @@ int main(int argc, char * argv[]) {
   TH1F * nJets20DZetaCutH = new TH1F("nJets20DZetaCutH","",10,-0.5,9.5);
   TH1F * nBLooseJetsDZetaCutH = new TH1F("nBLooseJetsDZetaCutH","",10,-0.5,9.5);
   TH1F * nBMediumJetsDZetaCutH = new TH1F("nBMediumJetsDZetaCutH","",10,-0.5,9.5);
-
+  TH1F * nVertDZetaCutH = new TH1F("nVertDZetaCutH","",51,-0.5,50.5);
 
   // histograms (dilepton selection + MEtCut)
   TH1F * electronPtMEtCutH  = new TH1F("electronPtMEtCutH","",40,0,200);
@@ -435,6 +436,7 @@ int main(int argc, char * argv[]) {
   TH1F * nJets20MEtCutH = new TH1F("nJets20MEtCutH","",10,-0.5,9.5);
   TH1F * nBLooseJetsMEtCutH = new TH1F("nBLooseJetsMEtCutH","",10,-0.5,9.5);
   TH1F * nBMediumJetsMEtCutH = new TH1F("nBMediumJetsMEtCutH","",10,-0.5,9.5);
+  TH1F * nVertMEtCutH = new TH1F("nVertMEtCutH","",51,-0.5,50.5);
 
   // histograms (dilepton selection + DZeta + MEtCut)
   TH1F * electronPtSelH  = new TH1F("electronPtSelH","",40,0,200);
@@ -452,6 +454,7 @@ int main(int argc, char * argv[]) {
   TH1F * nJets20SelH = new TH1F("nJets20SelH","",10,-0.5,9.5);
   TH1F * nBLooseJetsSelH = new TH1F("nBLooseJetsSelH","",10,-0.5,9.5);
   TH1F * nBMediumJetsSelH = new TH1F("nBMediumJetsSelH","",10,-0.5,9.5);
+  TH1F * nVertSelH = new TH1F("nVertSelH","",51,-0.5,50.5);
 
   // histograms (dilepton selection + TTJets selection)
   TH1F * electronPtTTJetsSelH  = new TH1F("electronPtTTJetsSelH","",40,0,200);
@@ -469,6 +472,7 @@ int main(int argc, char * argv[]) {
   TH1F * nJets20TTJetsSelH = new TH1F("nJets20TTJetsSelH","",10,-0.5,9.5);
   TH1F * nBLooseJetsTTJetsSelH = new TH1F("nBLooseJetsTTJetsSelH","",10,-0.5,9.5);
   TH1F * nBMediumJetsTTJetsSelH = new TH1F("nBMediumJetsTTJetsSelH","",10,-0.5,9.5);
+  TH1F * nVertTTJetsSelH = new TH1F("nVertTTJetsSelH","",51,-0.5,50.5);
 
   TH1F * TTJetsDiLeptonH = new TH1F("TTJetsDiLeptonH","",1,-0.5,0.5);
   TH1F * TTJetsDiLeptonElePtH = new TH1F("TTJetsDiLeptonElePtH","",1000,0,1000);
@@ -830,6 +834,7 @@ int main(int argc, char * argv[]) {
 		       analysisTree.primvertex_y*analysisTree.primvertex_y);
       if (dVertex>dVertexCut) continue;
 
+      float nVert = float(analysisTree.primvertex_count);
       
       // electron selection
 
@@ -1071,6 +1076,8 @@ int main(int argc, char * argv[]) {
       nBLooseJetsH->Fill(float(nBLooseJets),weight);
       nBMediumJetsH->Fill(float(nBMediumJets),weight);
 
+      nVertH->Fill(nVert,weight);
+
       // topological cut
       if (DZeta>dZetaCut) {
       
@@ -1094,6 +1101,7 @@ int main(int argc, char * argv[]) {
 	nBLooseJetsDZetaCutH->Fill(float(nBLooseJets),weight);
 	nBMediumJetsDZetaCutH->Fill(float(nBMediumJets),weight);
 
+	nVertDZetaCutH->Fill(nVert,weight);
       }
 
       if (ETmiss<MEtCut) {
@@ -1118,6 +1126,7 @@ int main(int argc, char * argv[]) {
 	nBLooseJetsMEtCutH->Fill(float(nBLooseJets),weight);
 	nBMediumJetsMEtCutH->Fill(float(nBMediumJets),weight);
 
+	nVertMEtCutH->Fill(nVert,weight);
       }
 
       if (ETmiss<MEtCut&&DZeta>dZetaCut) {
@@ -1142,7 +1151,7 @@ int main(int argc, char * argv[]) {
 	nBLooseJetsSelH->Fill(float(nBLooseJets),weight);
 	nBMediumJetsSelH->Fill(float(nBMediumJets),weight);
 
-
+	nVertSelH->Fill(nVert,weight);
       }
       
       if (ETmiss>MEtCutTTJets&&nBLooseJets>0) {
@@ -1167,6 +1176,7 @@ int main(int argc, char * argv[]) {
 	nBLooseJetsTTJetsSelH->Fill(float(nBLooseJets),weight);
 	nBMediumJetsTTJetsSelH->Fill(float(nBMediumJets),weight);
 
+	nVertTTJetsSelH->Fill(nVert,weight);
       }
 
 
