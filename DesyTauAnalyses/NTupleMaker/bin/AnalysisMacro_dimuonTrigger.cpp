@@ -25,9 +25,7 @@
 
 #include "DesyTauAnalyses/NTupleMaker/interface/Config.h"
 #include "DesyTauAnalyses/NTupleMaker/interface/AC1B.h"
-
-#include "DesyTauAnalyses/NTupleMaker/interface/RunLumiReader.h"
-
+#include "DesyTauAnalyses/NTupleMaker/interface/json.h"
 
 const float MuMass = 0.105658367;
 
@@ -278,7 +276,7 @@ bool electronMvaIdWP90(float pt, float eta, float mva) {
 
 struct myclass {
   bool operator() (int i,int j) { return (i<j);}
-} myobject;
+} myobject, myobjectX;
 
 const float electronMass = 0;
 const float muonMass = 0.10565837;
@@ -297,7 +295,6 @@ int main(int argc, char * argv[]) {
   // Data
   const bool isData = cfg.get<bool>("IsData");
   const bool applyGoodRunSelection = cfg.get<bool>("ApplyGoodRunSelection"); 
-  const string jsonFile = cfg.get<string>("jsonFile");
 
   // kinematic cuts on muons
   const float ptMuonLowCut   = cfg.get<float>("ptMuonLowCut");
@@ -347,11 +344,16 @@ int main(int argc, char * argv[]) {
   string cmsswBase = (getenv ("CMSSW_BASE"));
 
   // Run-lumi selector
-  std::vector<std::string> jsonFiles;
-  jsonFiles.push_back(cmsswBase+"/src/DesyTauAnalyses/NTupleMaker/test/"+jsonFile);
 
-  RunLumiSelector runLumiSelector;
-  runLumiSelector = RunLumiSelector(jsonFiles);
+  std::vector<Period> periods;
+    
+  std::fstream inputFileStream("temp_muon", std::ios::in);
+  for(std::string s; std::getline(inputFileStream, s); )
+    {
+      periods.push_back(Period());
+      std::stringstream ss(s);
+      ss >> periods.back();
+    }
 
   // file name and tree name
   std::string rootFileName(argv[2]);
@@ -368,6 +370,10 @@ int main(int argc, char * argv[]) {
   TH1F * inputEventsH = new TH1F("inputEventsH","",1,-0.5,0.5);
   TH1F * weightsH = new TH1F("weightsH","",1,-0.5,0.5);
 
+  // prescales
+  TH1F * prescaleHLTMu17Mu8H = new TH1F("prescaleHLTMu17Mu8H","",21,-0.5,20.5);
+  TH1F * prescaleHLTMu17Mu8DZH = new TH1F("prescaleHLTMu17Mu8DZH","",21,-0.5,20.5);
+  TH1F * prescaleHLTMu17Mu8SameSignDZH = new TH1F("prescaleHLTMu17Mu8SameSignDZH","",21,-0.5,20.5);
 
   // J/Psi ->
   TH1F * JPsiMassDZFilterPassH =  new TH1F("JPsiMassDZFilterPassH","",200,2,4);
@@ -384,6 +390,24 @@ int main(int argc, char * argv[]) {
 
   TH1F * JPsiMassSameSignFilterPassH =  new TH1F("JPsiMassSameSignFilterPassH","",200,2,4);
   TH1F * JPsiMassSameSignFilterFailH =  new TH1F("JPsiMassSameSignFilterFailH","",200,2,4);
+
+  TH1F * JPsiMassSameSignFilterDR0to0p1PassH =  new TH1F("JPsiMassSameSignFilterDR0to0p1PassH","",200,2,4);
+  TH1F * JPsiMassSameSignFilterDR0to0p1FailH =  new TH1F("JPsiMassSameSignFilterDR0to0p1FailH","",200,2,4);
+
+  TH1F * JPsiMassSameSignFilterDR0p1to0p15PassH =  new TH1F("JPsiMassSameSignFilterDR0p15to0p5PassH","",200,2,4);
+  TH1F * JPsiMassSameSignFilterDR0p1to0p15FailH =  new TH1F("JPsiMassSameSignFilterDR0p15to0p5FailH","",200,2,4);
+
+  TH1F * JPsiMassSameSignFilterDRGt0p15PassH =  new TH1F("JPsiMassSameSignFilterDRGt0p15PassH","",200,2,4);
+  TH1F * JPsiMassSameSignFilterDRGt0p15FailH =  new TH1F("JPsiMassSameSignFilterDRGt0p15FailH","",200,2,4);
+
+  TH1F * muIsoLeadJPsiHLTMu17Mu8H   = new TH1F("muIsoLeadJPsiHLTMu17Mu8H","",200,0,2);
+  TH1F * muIsoLeadJPsiHLTMu17Mu8DZH = new TH1F("muIsoLeadJPsiHLTMu17Mu8DZH","",200,0,2);
+
+  TH1F * muIsoTrailJPsiHLTMu17Mu8H   = new TH1F("muIsoTrailJPsiHLTMu17Mu8H","",200,0,2);
+  TH1F * muIsoTrailJPsiHLTMu17Mu8DZH = new TH1F("muIsoTrailJPsiHLTMu17Mu8DZH","",200,0,2);
+
+  TH1F * dRmumuJPsiHLTMu17Mu8H   = new TH1F("dRmumuJPsiHLTMu17Mu8H","",200,0,2);
+  TH1F * dRmumuJPsiHLTMu17Mu8DZH = new TH1F("dRmumuJPsiHLTMu17Mu8DZH","",200,0,2);
 
   // Z ->
   TH1F * ZMassDZFilterPassH =  new TH1F("ZMassDZFilterPassH","",60,60,120);
@@ -426,6 +450,7 @@ int main(int argc, char * argv[]) {
   unsigned int maxRun = 0;
 
   std::vector<unsigned int> allRuns; allRuns.clear();
+  std::vector<unsigned int> allGoodRuns; allGoodRuns.clear();
 
   int nTotalFiles = 0;
   std::string dummy;
@@ -495,9 +520,45 @@ int main(int argc, char * argv[]) {
 	allRuns.push_back(analysisTree.event_run);
 
       if (isData) {
-	if (applyGoodRunSelection && !runLumiSelector.accept(analysisTree.event_run, analysisTree.event_luminosityblock))
-	  continue;
+	if (applyGoodRunSelection) {
+	  bool lumi = false;
+	  int n=analysisTree.event_run;
+	  int lum = analysisTree.event_luminosityblock;
+	  
+	  std::string num = std::to_string(n);
+	  std::string lnum = std::to_string(lum);
+	  for(const auto& a : periods)
+	    {
+	      if ( num.c_str() ==  a.name ) {
+		//	      std::cout<< " Eureka "<<num<<"  "<<a.name<<" ";
+		//std::cout <<"min "<< last->lower << "- max last " << last->bigger << std::endl;
+		
+		for(auto b = a.ranges.begin(); b != std::prev(a.ranges.end()); ++b) {
+		  
+		  //   cout<<b->lower<<"  "<<b->bigger<<endl;
+		  if (lum  >= b->lower && lum <= b->bigger ) lumi = true;
+		}
+		auto last = std::prev(a.ranges.end());
+		// std::cout <<"min "<< last->lower << "- max last " << last->bigger << std::endl;
+		if (  (lum >=last->lower && lum <= last->bigger )) lumi=true;
+	      }
+	    }
+	  if (!lumi) continue;
+	}
       }
+
+      isNewRun = true;
+      if (allGoodRuns.size()>0) {
+	for (unsigned int iR=0; iR<allGoodRuns.size(); ++iR) {
+	  if (analysisTree.event_run==allGoodRuns.at(iR)) {
+	    isNewRun = false;
+	    break;
+	  }
+	}
+      }
+
+      if (isNewRun) 
+	allGoodRuns.push_back(analysisTree.event_run);
 
       weightsH->Fill(0.0,weight);
 
@@ -522,6 +583,31 @@ int main(int argc, char * argv[]) {
 	  if (it->second==1)
             isHLTMu17Mu8SameSignDZ = true;
 	}
+      }
+
+      int presHLTMu17Mu8 = 1;
+      int presHLTMu17Mu8DZ = 1;
+      int presHLTMu17Mu8SameSignDZ = 1;
+      for (std::map<string,int>::iterator it=analysisTree.hltriggerprescales->begin(); it!=analysisTree.hltriggerprescales->end(); ++it) {
+	TString trigName(it->first);
+	if (trigName.Contains(HLTMu17Mu8)) {
+	  //	  std::cout << trigName << " : " << it->second << std::endl;
+	  presHLTMu17Mu8 = it->second;
+	}
+	if (trigName.Contains(HLTMu17Mu8DZ)) {
+	  //	  std::cout << trigName << " : " << it->second << std::endl;
+	  presHLTMu17Mu8DZ = it->second;
+	}
+	if (trigName.Contains(HLTMu17Mu8SameSignDZ)) {
+	  //	  std::cout << trigName << " : " << it->second << std::endl;
+	  presHLTMu17Mu8SameSignDZ = it->second;
+	}
+      }
+
+      if (!applyTrigger) {
+	isHLTMu17Mu8 = true;
+	isHLTMu17Mu8DZ = true;
+	isHLTMu17Mu8SameSignDZ = true;
       }
 
       unsigned int nMu17Leg = 0;
@@ -575,6 +661,10 @@ int main(int argc, char * argv[]) {
       float dVertex = (analysisTree.primvertex_x*analysisTree.primvertex_x+
 		       analysisTree.primvertex_y*analysisTree.primvertex_y);
       if (dVertex>dVertexCut) continue;
+
+      prescaleHLTMu17Mu8H->Fill(float(presHLTMu17Mu8),weight);
+      prescaleHLTMu17Mu8DZH->Fill(float(presHLTMu17Mu8DZ),weight);
+      prescaleHLTMu17Mu8SameSignDZH->Fill(float(presHLTMu17Mu8SameSignDZ),weight);
 
       
       // muon selection
@@ -634,7 +724,6 @@ int main(int argc, char * argv[]) {
 
 	  float dRmumu = deltaR(analysisTree.muon_eta[mu1Index],analysisTree.muon_phi[mu1Index],
 				analysisTree.muon_eta[mu2Index],analysisTree.muon_phi[mu2Index]);
-	  if (dRmumu>dRleptonsCut) continue;
 
 	  bool mu2MatchMu17 = false;
 	  bool mu2MatchMu8  = false;
@@ -674,46 +763,64 @@ int main(int argc, char * argv[]) {
 
 	  float mass = (mu1lv+mu2lv).M();
 
+	  float absIso1 = analysisTree.muon_chargedHadIso[mu1Index];
+	  float relIso1 = absIso1/analysisTree.muon_pt[mu1Index];
+
+	  float absIso2 = analysisTree.muon_chargedHadIso[mu2Index];
+	  float relIso2 = absIso2/analysisTree.muon_pt[mu2Index];
+
+	  if (analysisTree.muon_pt[mu2Index]>analysisTree.muon_pt[mu1Index]) {
+	    float temp = relIso1;
+	    relIso1 = relIso2;
+	    relIso2 = temp;
+	  }
+
+
 	  isPairSelected = true;
 	  selPairs++;
 	  
 	  if (isHLTMu17Mu8 && triggerMatch) { // pass HLT_Mu17_Mu8
 	    isPairSelectedHLTMu17Mu8 = true;
 	    selPairsHLTMu17Mu8++;
+	    if (mass>3.0&&mass<3.2) {
+	      muIsoLeadJPsiHLTMu17Mu8H->Fill(relIso1,weight);
+	      muIsoTrailJPsiHLTMu17Mu8H->Fill(relIso2,weight);
+	      dRmumuJPsiHLTMu17Mu8H->Fill(dRmumu,weight);
+	    }
 	    if (triggerMatchDz) { // pass HLT_Mu17_Mu8_DZ
 	      if (dZ<dZleptonsCut) {
 		JPsiMassDZFilterPassH->Fill(mass,weight);
-		ZMassDZFilterPassH->Fill(mass,weight);
+		if (dRmumu>dRleptonsCut) ZMassDZFilterPassH->Fill(mass,weight);
 	      }
 	      if (dZ<0.1) {
 		JPsiMassDZFilterDz0to1PassH->Fill(mass,weight);
-		ZMassDZFilterDz0to1PassH->Fill(mass,weight);
+		if (dRmumu>dRleptonsCut) ZMassDZFilterDz0to1PassH->Fill(mass,weight);
 	      }
 	      else if (dZ<0.2) {
 		JPsiMassDZFilterDz1to2PassH->Fill(mass,weight); 
-                ZMassDZFilterDz1to2PassH->Fill(mass,weight);
+                if (dRmumu>dRleptonsCut) ZMassDZFilterDz1to2PassH->Fill(mass,weight);
 	      }
 	      else {
 		JPsiMassDZFilterDzGt2PassH->Fill(mass,weight);
-                ZMassDZFilterDzGt2PassH->Fill(mass,weight);
+                if (dRmumu>dRleptonsCut) ZMassDZFilterDzGt2PassH->Fill(mass,weight);
 	      }
 	    }
 	    else { // fail HLT_Mu17_Mu8_DZ
 	      if (dZ<dZleptonsCut) {
 		JPsiMassDZFilterFailH->Fill(mass,weight);
-                ZMassDZFilterFailH->Fill(mass,weight);
+                if (dRmumu>dRleptonsCut) ZMassDZFilterFailH->Fill(mass,weight);
               }
 	      if (dZ<0.1) {
                 JPsiMassDZFilterDz0to1FailH->Fill(mass,weight);
-                ZMassDZFilterDz0to1FailH->Fill(mass,weight);
+                if (dRmumu>dRleptonsCut) ZMassDZFilterDz0to1FailH->Fill(mass,weight);
               }
               else if (dZ<0.2) {
                 JPsiMassDZFilterDz1to2FailH->Fill(mass,weight);
-                ZMassDZFilterDz1to2FailH->Fill(mass,weight);
+                if (dRmumu>dRleptonsCut) ZMassDZFilterDz1to2FailH->Fill(mass,weight);
               }
               else {
                 JPsiMassDZFilterDzGt2FailH->Fill(mass,weight);
-                ZMassDZFilterDzGt2FailH->Fill(mass,weight);
+                if (dRmumu>dRleptonsCut) ZMassDZFilterDzGt2FailH->Fill(mass,weight);
               }
 	    }
 	  }
@@ -721,16 +828,33 @@ int main(int argc, char * argv[]) {
 	  if (isHLTMu17Mu8DZ && triggerMatchDz) { // pass HLT_Mu17_Mu8_DZ
 	    isPairSelectedHLTMu17Mu8DZ = true;
             selPairsHLTMu17Mu8DZ++;
+	    if (mass>3.0&&mass<3.2) {
+	      muIsoLeadJPsiHLTMu17Mu8DZH->Fill(relIso1,weight);
+	      muIsoTrailJPsiHLTMu17Mu8DZH->Fill(relIso2,weight);
+	      dRmumuJPsiHLTMu17Mu8DZH->Fill(dRmumu,weight);
+	    }
 	    if (triggerMatchSS) { // pass HLT_Mu17_Mu8_SameSign_DZ
               if (dZ<dZleptonsCut) {
-                JPsiMassDZFilterPassH->Fill(mass,weight);
-                ZMassDZFilterPassH->Fill(mass,weight);
+                JPsiMassSameSignFilterPassH->Fill(mass,weight);
+                if (dRmumu>dRleptonsCut) ZMassSameSignFilterPassH->Fill(mass,weight);
+		if (dRmumu<0.1)
+		  JPsiMassSameSignFilterDR0to0p1PassH->Fill(mass,weight);
+		else if (dRmumu<0.15)
+		  JPsiMassSameSignFilterDR0p1to0p15PassH->Fill(mass,weight);
+		else
+		  JPsiMassSameSignFilterDRGt0p15PassH->Fill(mass,weight);
               }
             }
             else { // fail HLT_Mu17_Mu8_SameSign_DZ
               if (dZ<dZleptonsCut) {
-                JPsiMassDZFilterFailH->Fill(mass,weight);
-                ZMassDZFilterFailH->Fill(mass,weight);
+                JPsiMassSameSignFilterFailH->Fill(mass,weight);
+                if (dRmumu>dRleptonsCut) ZMassSameSignFilterFailH->Fill(mass,weight);
+		if (dRmumu<0.1)
+		  JPsiMassSameSignFilterDR0to0p1FailH->Fill(mass,weight);
+		else if (dRmumu<0.15)
+		  JPsiMassSameSignFilterDR0p1to0p15FailH->Fill(mass,weight);
+		else
+		  JPsiMassSameSignFilterDRGt0p15FailH->Fill(mass,weight);
               }
             }
 	  }
@@ -780,9 +904,14 @@ int main(int argc, char * argv[]) {
   std::cout << std::endl;
   // using object as comp
   std::sort (allRuns.begin(), allRuns.end(), myobject);
-  std::cout << "Runs : ";
+  std::cout << "runs      : ";
   for (unsigned int iR=0; iR<allRuns.size(); ++iR)
     std::cout << " " << allRuns.at(iR);
+  std::cout << std::endl;
+  std::sort (allGoodRuns.begin(), allGoodRuns.end(), myobject);
+  std::cout << "good runs : ";
+  for (unsigned int iR=0; iR<allGoodRuns.size(); ++iR)
+    std::cout << " " << allGoodRuns.at(iR);
   std::cout << std::endl;
   file->cd("");
   file->Write();
