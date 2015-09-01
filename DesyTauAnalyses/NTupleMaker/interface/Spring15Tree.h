@@ -32,6 +32,7 @@ public :
   Int_t           npv;
   Int_t           npu;
   Float_t         rho;
+  Float_t         xs;
   Float_t         mcweight;
   Float_t         puweight;
   Float_t         trigweight_1;
@@ -70,10 +71,10 @@ public :
   Float_t         dZ_2;
   Float_t         mva_2;
   Float_t         mt_2;
-  Char_t          os;
-  Char_t          dilepton_veto;
-  Char_t          extraelec_veto;
-  Char_t          extramuon_veto;
+  Int_t           os;
+  Int_t           dilepton_veto;
+  Int_t           extraelec_veto;
+  Int_t           extramuon_veto;
   Float_t         byCombinedIsolationDeltaBetaCorrRaw3Hits_1;
   Float_t         againstElectronLooseMVA5_1;
   Float_t         againstElectronMediumMVA5_1;
@@ -139,6 +140,7 @@ public :
   TBranch        *b_npv;   //!
   TBranch        *b_npu;   //!
   TBranch        *b_rho;   //!
+  TBranch        *b_xs;   //!
   TBranch        *b_mcweight;   //!
   TBranch        *b_puweight;   //!
   TBranch        *b_trigweight_1;   //!

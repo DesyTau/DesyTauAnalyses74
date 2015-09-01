@@ -638,13 +638,13 @@ public :
    TBranch        *b_hltriggerprescales_second;   //!
    TBranch        *b_hltriggerresultsV;   //!
 
-   AC1B(TTree *tree=0);
+   AC1B(TTree *tree=0, bool isData = 0);
    virtual ~AC1B();
    virtual Int_t    Cut(Long64_t entry);
    virtual Int_t    GetEntry(Long64_t entry);
    virtual Long64_t GetEntries();
    virtual Long64_t LoadTree(Long64_t entry);
-   virtual void     Init(TTree *tree);
+   virtual void     Init(TTree *tree, bool isData);
    virtual void     Loop();
    virtual Bool_t   Notify();
    virtual void     Show(Long64_t entry = -1);
@@ -653,7 +653,7 @@ public :
 #endif
 
 #ifdef AC1B_cxx
-AC1B::AC1B(TTree *tree) : fChain(0) 
+AC1B::AC1B(TTree *tree, bool isData) : fChain(0) 
 {
 // if parameter tree is not specified (or zero), connect the file
 // used to generate this class and read the Tree.
@@ -666,7 +666,7 @@ AC1B::AC1B(TTree *tree) : fChain(0)
       dir->GetObject("AC1B",tree);
 
    }
-   Init(tree);
+   Init(tree, isData);
 }
 
 AC1B::~AC1B()
@@ -719,7 +719,7 @@ Long64_t AC1B::LoadTree(Long64_t entry)
    return centry;
 }
 
-void AC1B::Init(TTree *tree)
+void AC1B::Init(TTree *tree, bool isData)
 {
    // The Init() function is called when the selector needs to initialize
    // a new tree or chain. Typically here the branch addresses and branch
@@ -747,6 +747,47 @@ void AC1B::Init(TTree *tree)
    fCurrent = -1;
    fChain->SetMakeClass(1);
 
+   if(isData == false){
+     fChain->SetBranchAddress("genweight", &genweight, &b_genweight);
+     fChain->SetBranchAddress("genid1", &genid1, &b_genid1);
+     fChain->SetBranchAddress("genx1", &genx1, &b_genx1);
+     fChain->SetBranchAddress("genid2", &genid2, &b_genid2);
+     fChain->SetBranchAddress("genx2", &genx2, &b_genx2);
+     fChain->SetBranchAddress("genScale", &genScale, &b_genScale);
+     fChain->SetBranchAddress("numpileupinteractionsminus", &numpileupinteractionsminus, &b_numpileupinteractionsminus);
+     fChain->SetBranchAddress("numpileupinteractions", &numpileupinteractions, &b_numpileupinteractions);
+     fChain->SetBranchAddress("numpileupinteractionsplus", &numpileupinteractionsplus, &b_numpileupinteractionsplus);
+     fChain->SetBranchAddress("numtruepileupinteractions", &numtruepileupinteractions, &b_numtruepileupinteractions);
+     fChain->SetBranchAddress("gentau_count", &gentau_count, &b_gentau_count);
+     fChain->SetBranchAddress("gentau_e", gentau_e, &b_gentau_e);
+     fChain->SetBranchAddress("gentau_px", gentau_px, &b_gentau_px);
+     fChain->SetBranchAddress("gentau_py", gentau_py, &b_gentau_py);
+     fChain->SetBranchAddress("gentau_pz", gentau_pz, &b_gentau_pz);
+     fChain->SetBranchAddress("gentau_visible_e", gentau_visible_e, &b_gentau_visible_e);
+     fChain->SetBranchAddress("gentau_visible_px", gentau_visible_px, &b_gentau_visible_px);
+     fChain->SetBranchAddress("gentau_visible_py", gentau_visible_py, &b_gentau_visible_py);
+     fChain->SetBranchAddress("gentau_visible_pz", gentau_visible_pz, &b_gentau_visible_pz);
+     fChain->SetBranchAddress("gentau_visible_pt", gentau_visible_pt, &b_gentau_visible_pt);
+     fChain->SetBranchAddress("gentau_visible_eta", gentau_visible_eta, &b_gentau_visible_eta);
+     fChain->SetBranchAddress("gentau_visible_phi", gentau_visible_phi, &b_gentau_visible_phi);
+     fChain->SetBranchAddress("gentau_visible_mass", gentau_visible_mass, &b_gentau_visible_mass);
+     fChain->SetBranchAddress("gentau_decayMode", gentau_decayMode, &b_gentau_decayMode);
+     fChain->SetBranchAddress("gentau_decayMode_name", gentau_decayMode_name, &b_gentau_decayMode_name);
+     fChain->SetBranchAddress("gentau_mother", gentau_mother, &b_gentau_mother);
+     fChain->SetBranchAddress("genparticles_count", &genparticles_count, &b_genparticles_count);
+     fChain->SetBranchAddress("genparticles_e", genparticles_e, &b_genparticles_e);
+     fChain->SetBranchAddress("genparticles_px", genparticles_px, &b_genparticles_px);
+     fChain->SetBranchAddress("genparticles_py", genparticles_py, &b_genparticles_py);
+     fChain->SetBranchAddress("genparticles_pz", genparticles_pz, &b_genparticles_pz);
+     fChain->SetBranchAddress("genparticles_vx", genparticles_vx, &b_genparticles_vx);
+     fChain->SetBranchAddress("genparticles_vy", genparticles_vy, &b_genparticles_vy);
+     fChain->SetBranchAddress("genparticles_vz", genparticles_vz, &b_genparticles_vz);
+     fChain->SetBranchAddress("genparticles_pdgid", genparticles_pdgid, &b_genparticles_pdgid);
+     fChain->SetBranchAddress("genparticles_status", genparticles_status, &b_genparticles_status);
+     fChain->SetBranchAddress("genparticles_info", genparticles_info, &b_genparticles_info);
+     fChain->SetBranchAddress("genparticles_mother", genparticles_mother, &b_genparticles_mother);
+   }
+     
    fChain->SetBranchAddress("errors", &errors, &b_errors);
    fChain->SetBranchAddress("event_nr", &event_nr, &b_event_nr);
    fChain->SetBranchAddress("event_run", &event_run, &b_event_run);
@@ -982,44 +1023,6 @@ void AC1B::Init(TTree *tree)
    fChain->SetBranchAddress("mvamet_sigyx", mvamet_sigyx, &b_mvamet_sigyx);
    fChain->SetBranchAddress("mvamet_sigyy", mvamet_sigyy, &b_mvamet_sigyy);
    fChain->SetBranchAddress("mvamet_channel", mvamet_channel, &b_mvamet_channel);
-   fChain->SetBranchAddress("genweight", &genweight, &b_genweight);
-   fChain->SetBranchAddress("genid1", &genid1, &b_genid1);
-   fChain->SetBranchAddress("genx1", &genx1, &b_genx1);
-   fChain->SetBranchAddress("genid2", &genid2, &b_genid2);
-   fChain->SetBranchAddress("genx2", &genx2, &b_genx2);
-   fChain->SetBranchAddress("genScale", &genScale, &b_genScale);
-   fChain->SetBranchAddress("numpileupinteractionsminus", &numpileupinteractionsminus, &b_numpileupinteractionsminus);
-   fChain->SetBranchAddress("numpileupinteractions", &numpileupinteractions, &b_numpileupinteractions);
-   fChain->SetBranchAddress("numpileupinteractionsplus", &numpileupinteractionsplus, &b_numpileupinteractionsplus);
-   fChain->SetBranchAddress("numtruepileupinteractions", &numtruepileupinteractions, &b_numtruepileupinteractions);
-   fChain->SetBranchAddress("gentau_count", &gentau_count, &b_gentau_count);
-   fChain->SetBranchAddress("gentau_e", gentau_e, &b_gentau_e);
-   fChain->SetBranchAddress("gentau_px", gentau_px, &b_gentau_px);
-   fChain->SetBranchAddress("gentau_py", gentau_py, &b_gentau_py);
-   fChain->SetBranchAddress("gentau_pz", gentau_pz, &b_gentau_pz);
-   fChain->SetBranchAddress("gentau_visible_e", gentau_visible_e, &b_gentau_visible_e);
-   fChain->SetBranchAddress("gentau_visible_px", gentau_visible_px, &b_gentau_visible_px);
-   fChain->SetBranchAddress("gentau_visible_py", gentau_visible_py, &b_gentau_visible_py);
-   fChain->SetBranchAddress("gentau_visible_pz", gentau_visible_pz, &b_gentau_visible_pz);
-   fChain->SetBranchAddress("gentau_visible_pt", gentau_visible_pt, &b_gentau_visible_pt);
-   fChain->SetBranchAddress("gentau_visible_eta", gentau_visible_eta, &b_gentau_visible_eta);
-   fChain->SetBranchAddress("gentau_visible_phi", gentau_visible_phi, &b_gentau_visible_phi);
-   fChain->SetBranchAddress("gentau_visible_mass", gentau_visible_mass, &b_gentau_visible_mass);
-   fChain->SetBranchAddress("gentau_decayMode", gentau_decayMode, &b_gentau_decayMode);
-   fChain->SetBranchAddress("gentau_decayMode_name", gentau_decayMode_name, &b_gentau_decayMode_name);
-   fChain->SetBranchAddress("gentau_mother", gentau_mother, &b_gentau_mother);
-   fChain->SetBranchAddress("genparticles_count", &genparticles_count, &b_genparticles_count);
-   fChain->SetBranchAddress("genparticles_e", genparticles_e, &b_genparticles_e);
-   fChain->SetBranchAddress("genparticles_px", genparticles_px, &b_genparticles_px);
-   fChain->SetBranchAddress("genparticles_py", genparticles_py, &b_genparticles_py);
-   fChain->SetBranchAddress("genparticles_pz", genparticles_pz, &b_genparticles_pz);
-   fChain->SetBranchAddress("genparticles_vx", genparticles_vx, &b_genparticles_vx);
-   fChain->SetBranchAddress("genparticles_vy", genparticles_vy, &b_genparticles_vy);
-   fChain->SetBranchAddress("genparticles_vz", genparticles_vz, &b_genparticles_vz);
-   fChain->SetBranchAddress("genparticles_pdgid", genparticles_pdgid, &b_genparticles_pdgid);
-   fChain->SetBranchAddress("genparticles_status", genparticles_status, &b_genparticles_status);
-   fChain->SetBranchAddress("genparticles_info", genparticles_info, &b_genparticles_info);
-   fChain->SetBranchAddress("genparticles_mother", genparticles_mother, &b_genparticles_mother);
    fChain->SetBranchAddress("trigobject_count", &trigobject_count, &b_trigobject_count);
    fChain->SetBranchAddress("trigobject_px", trigobject_px, &b_trigobject_px);
    fChain->SetBranchAddress("trigobject_py", trigobject_py, &b_trigobject_py);
