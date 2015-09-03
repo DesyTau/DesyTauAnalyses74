@@ -12,61 +12,191 @@ period = 'Run2015B'
 
 #sampleName = "@SAMPLE_NAME@"
 
+
+# Define the CMSSW process
 process = cms.Process("TreeProducer")
 
-process.load('FWCore/MessageService/MessageLogger_cfi')
-process.MessageLogger.cerr.FwkReport.reportEvery = 100
+# Load the standard set of configuration modules
+process.load('Configuration.StandardSequences.Services_cff')
+process.load('Configuration.StandardSequences.GeometryDB_cff')
+process.load('Configuration.StandardSequences.MagneticField_38T_cff')
+process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_cff')
+
+# Message Logger settings
+process.load("FWCore.MessageService.MessageLogger_cfi")
+process.MessageLogger.destinations = ['cout', 'cerr']
 process.MessageLogger.cerr.threshold = cms.untracked.string('INFO')
-#process.load('Configuration.StandardSequences.Geometry_cff')
-#process.load('Configuration.Geometry.GeometryIdeal_cff')
-#process.load('Configuration.StandardSequences.MagneticField_cff')
-#process.load('Configuration/StandardSequences/FrontierConditions_GlobalTag_cff')
+process.MessageLogger.cerr.FwkReport.reportEvery = 1
 
-process.load('Configuration/StandardSequences/Services_cff')
-process.load("Configuration.Geometry.GeometryDB_cff")
+# Set the process options -- Display summary at the end, enable unscheduled execution
+process.options = cms.untracked.PSet( 
+    allowUnscheduled = cms.untracked.bool(True),
+    wantSummary = cms.untracked.bool(False) 
+)
+
+# How many events to process
+process.maxEvents = cms.untracked.PSet( 
+   input = cms.untracked.int32(100)
+)
+
+
+#configurable options =======================================================================
+runOnData=isData #data/MC switch
+usePrivateSQlite=True #use external JECs (sqlite file)
+useHFCandidates=False #create an additionnal NoHF slimmed MET collection if the option is set to false
+applyResiduals=True #application of residual corrections. Have to be set to True once the 13 TeV residual corrections are available. False to be kept meanwhile. Can be kept to False later for private tests or for analysis checks and developments (not the official recommendation!).
+#===================================================================
+
+
+### External JECs =====================================================================================================
+
+#from Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff import *
 process.load('Configuration.StandardSequences.FrontierConditions_GlobalTag_condDBv2_cff')
-process.load("Configuration.StandardSequences.MagneticField_cff")
-
 from Configuration.AlCa.GlobalTag_condDBv2 import GlobalTag
-#process.GlobalTag = GlobalTag(process.GlobalTag, 'MCRUN2_74_V7C', '')
-process.GlobalTag = GlobalTag(process.GlobalTag, '74X_dataRun2_Prompt_v0', '')
 
-#process.GlobalTag.globaltag = cms.string('MCRUN2_74_V9::Al')
+if runOnData:
+  process.GlobalTag.globaltag = '74X_dataRun2_Prompt_v1'
+else:
+  process.GlobalTag.globaltag = 'MCRUN2_74_V9A'
 
-process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
+if usePrivateSQlite:
+    from CondCore.DBCommon.CondDBSetup_cfi import *
+    import os
+    if runOnData:
+      era="Summer15_50nsV5_DATA"
+    else:
+      era="Summer15_50nsV5_MC"
+    dBFile = os.path.expandvars("$CMSSW_BASE/src/DesyTauAnalyses/NTupleMaker/data/"+era+".db")
+    process.jec = cms.ESSource("PoolDBESSource",CondDBSetup,
+                               connect = cms.string( "sqlite_file://"+dBFile ),
+                               toGet =  cms.VPSet(
+            cms.PSet(
+                record = cms.string("JetCorrectionsRecord"),
+                tag = cms.string("JetCorrectorParametersCollection_"+era+"_AK4PF"),
+                label= cms.untracked.string("AK4PF")
+                ),
+            cms.PSet(
+                record = cms.string("JetCorrectionsRecord"),
+                tag = cms.string("JetCorrectorParametersCollection_"+era+"_AK4PFchs"),
+                label= cms.untracked.string("AK4PFchs")
+                ),
+            )
+                               )
+    process.es_prefer_jec = cms.ESPrefer("PoolDBESSource",'jec')
+
+#uncertainty file
+if runOnData:
+  jecUncertaintyFile="DesyTauAnalyses/NTupleMaker/data/Summer15_50nsV5/Summer15_50nsV5_DATA_UncertaintySources_AK4PFchs.txt"
+else:
+  jecUncertaintyFile="DesyTauAnalyses/NTupleMaker/data/Summer15_50nsV5/Summer15_50nsV5_MC_UncertaintySources_AK4PFchs.txt"
+
+
+### =====================================================================================================
+
+
+# Define the input source
+if runOnData:
+  # corMETFromMiniAOD
+  fname = 'root://eoscms.cern.ch//store/data/Run2015B/JetHT/MINIAOD/PromptReco-v1/000/251/252/00000/263D331F-AF27-E511-969B-02163E012627.root' 
+  # SingleMu
+  #fname = '/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/164/00000/544E58CD-A226-E511-834E-02163E0134D6.root'
+else:
+  # corMETFromMiniAOD
+  fname = 'root://eoscms.cern.ch//store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt50ns_MCRUN2_74_V9A-v2/60000/001C7571-0511-E511-9B8E-549F35AE4FAF.root'
+  # SUSYGluGluToBBHToTauTau_M-160
+  #fname = '/store/mc/RunIISpring15DR74/SUSYGluGluToBBHToTauTau_M-160_TuneCUETP8M1_13TeV-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v2/50000/1A81092B-1A11-E511-B683-002618943849.root'
+  # SUSYGluGluToHToTauTau_M-160
+  #fname = '/store/mc/RunIISpring15DR74/SUSYGluGluToHToTauTau_M-160_TuneCUETP8M1_13TeV-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v1/10000/2A3929AE-5303-E511-9EFE-0025905A48C0.root'
+  # DYJetsToLL_M-50 (aMC@NLO 25ns)
+  #fname = '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt25ns_MCRUN2_74_V9-v3/10000/009D49A5-7314-E511-84EF-0025905A605E.root'
+  # DYJetsToLL_M-50 (aMC@NLO 50ns)
+  #fname = '/store/mc/RunIISpring15DR74/DYJetsToLL_M-50_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt50ns_MCRUN2_74_V9A-v2/00000/02DE3B74-6C08-E511-ABE3-0025905A60D0.root'
+  # TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8
+  #fname = '/store/mc/RunIISpring15DR74/TTJets_TuneCUETP8M1_13TeV-amcatnloFXFX-pythia8/MINIAODSIM/Asympt50ns_MCRUN2_74_V9A-v1/00000/00466730-F801-E511-9594-549F35AF450A.root'
+
+# Define the input source
+process.source = cms.Source("PoolSource", 
+    fileNames = cms.untracked.vstring([ fname ])
 )
 
-process.source = cms.Source("PoolSource",
-	fileNames = cms.untracked.vstring(
-		# Single Muon Run2015B
-		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/164/00000/544E58CD-A226-E511-834E-02163E0134D6.root',
-		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/167/00000/EE9594B8-A826-E511-A18B-02163E011A7D.root',
-		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/4E8E390B-EA26-E511-9EDA-02163E013567.root',
-		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/60FF8405-EA26-E511-A892-02163E01387D.root'
-		# Single Electron Run2015B
-#		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/096/00000/22D22D7F-5626-E511-BDE3-02163E011FAB.root',
-#		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/161/00000/7019DC27-9C26-E511-84FF-02163E011CC2.root',
-#		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/163/00000/9C435096-9F26-E511-A1D7-02163E012AB6.root',
-#		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/164/00000/4633CC68-A326-E511-95D0-02163E0124EA.root',
-#		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/167/00000/E661FBF2-A726-E511-8B8B-02163E01207C.root',
-#		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/168/00000/FCB6CB61-BC26-E511-8858-02163E01375B.root'
-                # Double EG Run2015B
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/096/00000/8A2D533C-5626-E511-AF3C-02163E011FAB.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/161/00000/AC857A3B-9C26-E511-B32E-02163E012704.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/163/00000/9CB965BF-9F26-E511-8FB1-02163E012040.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/164/00000/2CA2349A-A526-E511-A371-02163E0138D0.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/167/00000/C446EC67-A726-E511-81C1-02163E0119E7.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/168/00000/747F782A-BB26-E511-BA24-02163E011EE9.root'
-        )		    
+### ---------------------------------------------------------------------------
+### Removing the HF from the MET computation
+### ---------------------------------------------------------------------------
+if not useHFCandidates:
+    process.noHFCands = cms.EDFilter("CandPtrSelector",
+                                     src=cms.InputTag("packedPFCandidates"),
+                                     cut=cms.string("abs(pdgId)!=1 && abs(pdgId)!=2 && abs(eta)<3.0")
+                                     )
+
+#jets are rebuilt from those candidates by the tools, no need to do anything else
+### =================================================================================
+
+from PhysicsTools.PatUtils.tools.runMETCorrectionsAndUncertainties import runMetCorAndUncFromMiniAOD
+
+#default configuration for miniAOD reprocessing, change the isData flag to run on data
+#for a full met computation, remove the pfCandColl input
+runMetCorAndUncFromMiniAOD(process,
+                           isData=runOnData,
+                           jecUncFile=jecUncertaintyFile
+                           )
+
+if not useHFCandidates:
+    runMetCorAndUncFromMiniAOD(process,
+                               isData=runOnData,
+                               pfCandColl=cms.InputTag("noHFCands"),
+                               jecUncFile=jecUncertaintyFile,
+                               postfix="NoHF"
+                               )
+
+### -------------------------------------------------------------------
+### the lines below remove the L2L3 residual corrections when processing data
+### -------------------------------------------------------------------
+if not applyResiduals:
+    process.patPFMetT1T2Corr.jetCorrLabelRes = cms.InputTag("L3Absolute")
+    process.patPFMetT1T2SmearCorr.jetCorrLabelRes = cms.InputTag("L3Absolute")
+    process.patPFMetT2Corr.jetCorrLabelRes = cms.InputTag("L3Absolute")
+    process.patPFMetT2SmearCorr.jetCorrLabelRes = cms.InputTag("L3Absolute")
+    process.shiftedPatJetEnDown.jetCorrLabelUpToL3Res = cms.InputTag("ak4PFCHSL1FastL2L3Corrector")
+    process.shiftedPatJetEnUp.jetCorrLabelUpToL3Res = cms.InputTag("ak4PFCHSL1FastL2L3Corrector")
+
+    if not useHFCandidates:
+          process.patPFMetT1T2CorrNoHF.jetCorrLabelRes = cms.InputTag("L3Absolute")
+          process.patPFMetT1T2SmearCorrNoHF.jetCorrLabelRes = cms.InputTag("L3Absolute")
+          process.patPFMetT2CorrNoHF.jetCorrLabelRes = cms.InputTag("L3Absolute")
+          process.patPFMetT2SmearCorrNoHF.jetCorrLabelRes = cms.InputTag("L3Absolute")
+          process.shiftedPatJetEnDownNoHF.jetCorrLabelUpToL3Res = cms.InputTag("ak4PFCHSL1FastL2L3Corrector")
+          process.shiftedPatJetEnUpNoHF.jetCorrLabelUpToL3Res = cms.InputTag("ak4PFCHSL1FastL2L3Corrector")
+### ------------------------------------------------------------------
+
+
+process.MINIAODSIMoutput = cms.OutputModule("PoolOutputModule",
+    compressionLevel = cms.untracked.int32(4),
+    compressionAlgorithm = cms.untracked.string('LZMA'),
+    eventAutoFlushCompressedSize = cms.untracked.int32(15728640),
+    outputCommands = cms.untracked.vstring( "keep *_slimmedMETs_*_*",
+                                            "keep *_slimmedMETsNoHF_*_*",
+                                            "keep *_patPFMetT1Txy_*_*",
+                                            "keep *_patPFMetT1TxyNoHF_*_*",
+                                            ),
+    fileName = cms.untracked.string('corMETMiniAOD.root'),
+    dataset = cms.untracked.PSet(
+        filterName = cms.untracked.string(''),
+        dataTier = cms.untracked.string('')
+    ),
+    dropMetaData = cms.untracked.string('ALL'),
+    fastCloning = cms.untracked.bool(False),
+    overrideInputFileSplitLevels = cms.untracked.bool(True)
 )
- 
+
+
+process.MINIAODSIMoutput_step = cms.EndPath(process.MINIAODSIMoutput)
+
 #####################################################
   
 
 #--------------------------------------------------------------------------------
 # produce PAT-tuple
-process.load("PhysicsTools/PatAlgos/patSequences_cff")
+####process.load("PhysicsTools/PatAlgos/patSequences_cff")
 # configure pat::Jet production
 # (enable L2L3Residual corrections in case running on Data)
 #jetCorrections = ( 'L1FastJet', 'L2Relative', 'L3Absolute')
@@ -489,6 +619,7 @@ RecPrimVertex = cms.untracked.bool(True),
 RecBeamSpot = cms.untracked.bool(True),
 RecTrack = cms.untracked.bool(False),
 RecPFMet = cms.untracked.bool(True),
+RecPFMetCorr = cms.untracked.bool(True),
 RecMvaMet = cms.untracked.bool(True),                                      
 RecMuon = cms.untracked.bool(True),
 RecPhoton = cms.untracked.bool(False),
@@ -500,7 +631,8 @@ MuonCollectionTag = cms.InputTag("slimmedMuons"),
 ElectronCollectionTag = cms.InputTag("slimmedElectrons"),
 TauCollectionTag = cms.InputTag("slimmedTaus"),
 JetCollectionTag = cms.InputTag("slimmedJets"),
-MetCollectionTag = cms.InputTag("slimmedMETs"),
+MetCollectionTag = cms.InputTag("slimmedMETs::RECO"),
+MetCorrCollectionTag = cms.InputTag("slimmedMETs::TreeProducer"),
 MvaMetCollectionsTag = cms.VInputTag("patMvaMetDiTau", "patMvaMetTauMu", "patMvaMetTauEle", "patMvaMetMuEle"),
 TrackCollectionTag = cms.InputTag("generalTracks"),
 GenParticleCollectionTag = cms.InputTag("prunedGenParticles"),

@@ -1195,6 +1195,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       // }  
     }
 
+  if(doDebug)  cout<<"add PF jets"<< endl; 
   if (crecpfjet) 
     {
       int numberOfJets = int(AddPFJets(iEvent,iSetup));
@@ -1214,6 +1215,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     } // crecpfjet
 
 
+  if(doDebug)  cout<<"add PF MET"<< endl; 
   if(crecpfmet)
     {
       edm::Handle<pat::METCollection> patMet;
@@ -1244,6 +1246,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
     } // crecpfmet
 
+  if(doDebug)  cout<<"add Corrected PF MET"<< endl; 
   if(crecpfmetcorr)
     {
       edm::Handle<pat::METCollection> patMet;
@@ -1264,6 +1267,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     } // crecpfmetcorr
   
 
+  if(doDebug)  cout<<"add MVA MET"<< endl; 
   if(crecmvamet)
     {
       //collect Mets
@@ -1301,6 +1305,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
     }// crecmvamet
 
+  if(doDebug)  cout<<"add rho"<< endl; 
   // rho neutral
   edm::Handle<double> rho;
   iEvent.getByLabel(edm::InputTag("fixedGridRhoFastjetAll"), rho);
@@ -1317,6 +1322,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   hepNUP_ = -1;
 
   // generator info and generated particles 
+  if(doDebug)  cout<<"add gen info"<< endl; 
   if(cgen && !cdata)
     {
       bool haveGenParticles = AddGenParticles(iEvent);
@@ -1358,18 +1364,19 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    }
 	}
     } // cgen
-    
+  if(doDebug)  cout<<"add muons"<< endl; 
   if (crecmuon) 
     {
       int numberOfMuons = int(AddMuons(iEvent));
     } // crecmuon
   
+  if(doDebug)  cout<<"add electrons"<< endl; 
   if (crecelectron) 
     {
       int numberOfElectrons = int(AddElectrons(iEvent,iSetup));
     } // crecelectron
   
-
+  if(doDebug)  cout<<"add trigger info"<< endl; 
   if (ctrigger) 
     {
       int numberOfTriggerObjects = int(AddTriggerObjects(iEvent));
