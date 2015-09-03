@@ -1027,10 +1027,10 @@ void AC1B::Init(TTree *tree, bool isData)
    fChain->SetBranchAddress("pfmet_ez", &pfmet_ez, &b_pfmet_ez);
    fChain->SetBranchAddress("pfmet_pt", &pfmet_pt, &b_pfmet_pt);
    fChain->SetBranchAddress("pfmet_phi", &pfmet_phi, &b_pfmet_phi);
-   fChain->SetBranchAddress("pfmet_sigxx", &pfmet_sigxx, &b_pfmetcorr_sigxx);
-   fChain->SetBranchAddress("pfmet_sigxy", &pfmet_sigxy, &b_pfmetcorr_sigxy);
-   fChain->SetBranchAddress("pfmet_sigyx", &pfmet_sigyx, &b_pfmetcorr_sigyx);
-   fChain->SetBranchAddress("pfmet_sigyy", &pfmet_sigyy, &b_pfmetcorr_sigyy);
+   fChain->SetBranchAddress("pfmet_sigxx", &pfmet_sigxx, &b_pfmet_sigxx);
+   fChain->SetBranchAddress("pfmet_sigxy", &pfmet_sigxy, &b_pfmet_sigxy);
+   fChain->SetBranchAddress("pfmet_sigyx", &pfmet_sigyx, &b_pfmet_sigyx);
+   fChain->SetBranchAddress("pfmet_sigyy", &pfmet_sigyy, &b_pfmet_sigyy);
    fChain->SetBranchAddress("pfmetcorr_ex", &pfmetcorr_ex, &b_pfmetcorr_ex);
    fChain->SetBranchAddress("pfmetcorr_ey", &pfmetcorr_ey, &b_pfmetcorr_ey);
    fChain->SetBranchAddress("pfmetcorr_ez", &pfmetcorr_ez, &b_pfmetcorr_ez);
