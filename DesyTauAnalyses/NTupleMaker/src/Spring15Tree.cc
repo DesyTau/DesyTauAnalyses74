@@ -62,6 +62,7 @@ void Spring15Tree::ReadInit(TTree *tree)
    fChain->SetBranchAddress("npv", &npv, &b_npv);
    fChain->SetBranchAddress("npu", &npu, &b_npu);
    fChain->SetBranchAddress("rho", &rho, &b_rho);
+   fChain->SetBranchAddress("xs", &xs, &b_xs);
    fChain->SetBranchAddress("mcweight", &mcweight, &b_mcweight);
    fChain->SetBranchAddress("puweight", &puweight, &b_puweight);
    fChain->SetBranchAddress("trigweight_1", &trigweight_1, &b_trigweight_1);
@@ -241,6 +242,7 @@ void Spring15Tree::WriteInit(TTree *tree) {
   fChain->Branch("npu", &npu, "npu/I");
   fChain->Branch("rho", &rho, "rho/F");
   
+  fChain->Branch("xs", &xs, "xs/F");
   fChain->Branch("mcweight", &mcweight, "mcweight/F");
   fChain->Branch("puweight", &puweight, "puweight/F");
   fChain->Branch("trigweight_1", &trigweight_1, "trigweight_1/F");
@@ -283,10 +285,10 @@ void Spring15Tree::WriteInit(TTree *tree) {
   fChain->Branch("mva_2", &mva_2, "mva_2/F");
   fChain->Branch("mt_2", &mt_2, "mt_2/F");
   
-  fChain->Branch("os", &os, "os/C");
-  fChain->Branch("dilepton_veto", &dilepton_veto, "dilepton_veto/C");
-  fChain->Branch("extraelec_veto", &extraelec_veto, "extraelec_veto/C");
-  fChain->Branch("extramuon_veto", &extramuon_veto, "extramuon_veto/C");
+  fChain->Branch("os", &os, "os/I");
+  fChain->Branch("dilepton_veto", &dilepton_veto, "dilepton_veto/I");
+  fChain->Branch("extraelec_veto", &extraelec_veto, "extraelec_veto/I");
+  fChain->Branch("extramuon_veto", &extramuon_veto, "extramuon_veto/I");
   
   fChain->Branch("byCombinedIsolationDeltaBetaCorrRaw3Hits_1", &byCombinedIsolationDeltaBetaCorrRaw3Hits_1, "byCombinedIsolationDeltaBetaCorrRaw3Hits_1/F");
   fChain->Branch("againstElectronLooseMVA5_1", &againstElectronLooseMVA5_1, "againstElectronLooseMVA5_1/F");

@@ -74,6 +74,7 @@ NTupleMaker::NTupleMaker(const edm::ParameterSet& iConfig) :
   crecphoton(iConfig.getUntrackedParameter<bool>("RecPhoton", false)),
   crecpfjet(iConfig.getUntrackedParameter<bool>("RecJet", false)),
   crecpfmet(iConfig.getUntrackedParameter<bool>("RecPFMet", false)),
+  crecpfmetcorr(iConfig.getUntrackedParameter<bool>("RecPFMetCorr", false)),
   crecmvamet(iConfig.getUntrackedParameter<bool>("RecMvaMet", false)),
   // triggers
   cHLTriggerPaths(iConfig.getUntrackedParameter<vector<string> >("HLTriggerPaths")),
@@ -116,6 +117,7 @@ NTupleMaker::NTupleMaker(const edm::ParameterSet& iConfig) :
   TauCollectionTag_(iConfig.getParameter<edm::InputTag>("TauCollectionTag")),
   JetCollectionTag_(iConfig.getParameter<edm::InputTag>("JetCollectionTag")),
   MetCollectionTag_(iConfig.getParameter<edm::InputTag>("MetCollectionTag")),
+  MetCorrCollectionTag_(iConfig.getParameter<edm::InputTag>("MetCorrCollectionTag")),
   MvaMetCollectionsTag_(iConfig.getParameter<std::vector<edm::InputTag> >("MvaMetCollectionsTag")),
   TrackCollectionTag_(iConfig.getParameter<edm::InputTag>("TrackCollectionTag")),
   GenParticleCollectionTag_(iConfig.getParameter<edm::InputTag>("GenParticleCollectionTag")),
@@ -552,10 +554,23 @@ void NTupleMaker::beginJob(){
     tree->Branch("pfmet_sigxy", &pfmet_sigxy, "pfmet_sigxy/F");
     tree->Branch("pfmet_sigyx", &pfmet_sigyx, "pfmet_sigyx/F");
     tree->Branch("pfmet_sigyy", &pfmet_sigyy, "pfmet_sigyy/F");
-    
+
     tree->Branch("genmet_ex", &genmet_ex, "genmet_ex/F");
     tree->Branch("genmet_ey", &genmet_ey, "genmet_ey/F");
   }
+
+  if (crecpfmetcorr) {
+    tree->Branch("pfmetcorr_ex", &pfmetcorr_ex, "pfmetcorr_ex/F");
+    tree->Branch("pfmetcorr_ey", &pfmetcorr_ey, "pfmetcorr_ey/F");
+    tree->Branch("pfmetcorr_ez", &pfmetcorr_ey, "pfmetcorr_ez/F");
+    tree->Branch("pfmetcorr_pt", &pfmetcorr_pt, "pfmetcorr_pt/F");
+    tree->Branch("pfmetcorr_phi", &pfmetcorr_phi, "pfmetcorr_phi/F");
+    tree->Branch("pfmetcorr_sigxx", &pfmetcorr_sigxx, "pfmetcorr_sigxx/F");
+    tree->Branch("pfmetcorr_sigxy", &pfmetcorr_sigxy, "pfmetcorr_sigxy/F");
+    tree->Branch("pfmetcorr_sigyx", &pfmetcorr_sigyx, "pfmetcorr_sigyx/F");
+    tree->Branch("pfmetcorr_sigyy", &pfmetcorr_sigyy, "pfmetcorr_sigyy/F");
+  }
+
 
   if (crecmvamet) {
     tree->Branch("mvamet_count", &mvamet_count, "mvamet_count/i");
@@ -1180,6 +1195,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       // }  
     }
 
+  if(doDebug)  cout<<"add PF jets"<< endl; 
   if (crecpfjet) 
     {
       int numberOfJets = int(AddPFJets(iEvent,iSetup));
@@ -1199,6 +1215,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
     } // crecpfjet
 
 
+  if(doDebug)  cout<<"add PF MET"<< endl; 
   if(crecpfmet)
     {
       edm::Handle<pat::METCollection> patMet;
@@ -1229,6 +1246,28 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
     } // crecpfmet
 
+  if(doDebug)  cout<<"add Corrected PF MET"<< endl; 
+  if(crecpfmetcorr)
+    {
+      edm::Handle<pat::METCollection> patMet;
+      iEvent.getByLabel(MetCorrCollectionTag_, patMet);
+
+      assert(patMet->size() > 0);
+      pfmetcorr_ex = (*patMet)[0].px();
+      pfmetcorr_ey = (*patMet)[0].py();
+      pfmetcorr_ez = (*patMet)[0].pz();
+      pfmetcorr_pt = (*patMet)[0].pt();
+      pfmetcorr_phi = (*patMet)[0].phi();
+      
+      pfmetcorr_sigxx = (*patMet)[0].getSignificanceMatrix()(0,0);
+      pfmetcorr_sigxy = (*patMet)[0].getSignificanceMatrix()(0,1);
+      pfmetcorr_sigyx = (*patMet)[0].getSignificanceMatrix()(1,0);
+      pfmetcorr_sigyy = (*patMet)[0].getSignificanceMatrix()(1,1);
+
+    } // crecpfmetcorr
+  
+
+  if(doDebug)  cout<<"add MVA MET"<< endl; 
   if(crecmvamet)
     {
       //collect Mets
@@ -1266,6 +1305,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
       }
     }// crecmvamet
 
+  if(doDebug)  cout<<"add rho"<< endl; 
   // rho neutral
   edm::Handle<double> rho;
   iEvent.getByLabel(edm::InputTag("fixedGridRhoFastjetAll"), rho);
@@ -1282,6 +1322,7 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
   hepNUP_ = -1;
 
   // generator info and generated particles 
+  if(doDebug)  cout<<"add gen info"<< endl; 
   if(cgen && !cdata)
     {
       bool haveGenParticles = AddGenParticles(iEvent);
@@ -1323,18 +1364,19 @@ void NTupleMaker::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetu
 	    }
 	}
     } // cgen
-    
+  if(doDebug)  cout<<"add muons"<< endl; 
   if (crecmuon) 
     {
       int numberOfMuons = int(AddMuons(iEvent));
     } // crecmuon
   
+  if(doDebug)  cout<<"add electrons"<< endl; 
   if (crecelectron) 
     {
       int numberOfElectrons = int(AddElectrons(iEvent,iSetup));
     } // crecelectron
   
-
+  if(doDebug)  cout<<"add trigger info"<< endl; 
   if (ctrigger) 
     {
       int numberOfTriggerObjects = int(AddTriggerObjects(iEvent));

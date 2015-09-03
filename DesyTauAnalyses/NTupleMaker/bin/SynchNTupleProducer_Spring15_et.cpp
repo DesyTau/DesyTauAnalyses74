@@ -5,6 +5,7 @@
 #include <vector>
 #include <sstream>
 #include <map>
+#include <algorithm>
 
 #include "TFile.h" 
 #include "TH1.h" 
@@ -28,6 +29,10 @@
 #include "DesyTauAnalyses/NTupleMaker/interface/AC1B.h"
 
 #include "DesyTauAnalyses/NTupleMaker/interface/Spring15Tree.h"
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
 
 const float MuMass = 0.105658367;
 
@@ -202,6 +207,40 @@ bool electronMvaIdTight(float eta, float mva) {
 
 }
 
+bool electron_Phys14_25ns_Veto( float superclusterEta, float dEtaIn, float dPhiIn, float full5x5_sigmaIetaIeta, float hOverE,
+				float d0, float dz, float ooEmooP, float iso, float expectedMissingInnerHits,
+				bool passedConversionVeto){
+
+  if (fabs(superclusterEta) <= 1.479){
+    if (fabs(dEtaIn) > 0.013625) return false;
+    if (fabs(dPhiIn) > 0.230374) return false;
+    if (full5x5_sigmaIetaIeta > 0.011586) return false;
+    if (hOverE > 0.181130) return false;
+    if (fabs(d0) > 0.094095) return false;
+    if (fabs(dz) > 0.713070) return false;
+    if (fabs(ooEmooP) > 0.295751) return false;
+    if (fabs(iso) > 0.158721) return false;
+    if (expectedMissingInnerHits > 3) return false;
+    if (!passedConversionVeto) return false;
+  }   
+  else if (fabs(superclusterEta) < 2.5) {
+    if (fabs(dEtaIn) > 0.011932) return false;
+    if (fabs(dPhiIn) > 0.255450) return false;
+    if (full5x5_sigmaIetaIeta > 0.031849) return false;
+    if (hOverE > 0.223870) return false;
+    if (fabs(d0) > 0.342293) return false;
+    if (fabs(dz) > 0.953461) return false;
+    if (fabs(ooEmooP) > 0.155501) return false;
+    if (fabs(iso) > 0.177032) return false;
+    if (expectedMissingInnerHits > 4) return false;
+    if (!passedConversionVeto) return false;
+  }
+  else
+    return false;
+
+  return true;
+}
+
 bool puJetIdLoose(float eta, float mva) {
 
   float absEta = fabs(eta);
@@ -220,7 +259,6 @@ bool puJetIdLoose(float eta, float mva) {
 }
 
 bool electronMvaIdWP80(float pt, float eta, float mva) {
-
   float absEta = fabs(eta);
   bool passed = false;
   if (absEta<0.8) {
@@ -241,9 +279,31 @@ bool electronMvaIdWP80(float pt, float eta, float mva) {
     else
       passed = mva > 0.683;
   }
-
   return passed;
+}
 
+bool electronMvaIdWP90(float pt, float eta, float mva) {
+  float absEta = fabs(eta);
+  bool passed = false;
+  if (absEta<0.8) {
+    if (pt<10) 
+      passed = mva > -0.483;
+    else 
+      passed = mva > 0.933;
+  }
+  else if (absEta<1.479) {
+    if (pt<10)
+      passed = mva > -0.267;
+    else
+      passed = mva > 0.825;
+  }
+  else {
+    if (pt<10)
+      passed = mva > -0.323;
+    else
+      passed = mva > 0.337;
+  }
+  return passed;
 }
 
 
@@ -256,14 +316,80 @@ bool electronMvaIdWP80(float pt, float eta, float mva) {
 #define tauMass 1.77682
 #define pionMass 0.1396
 
+
+typedef std::vector<std::pair<int,int> > lumi_json;
+
+struct compare_lumi {
+  bool operator()(const std::pair<int,int> &left, const std::pair<int,int> &right) {
+    if (left.first < right.first)
+      return 1;
+    else if (left.first > right.first)
+      return 0;
+    else
+      return left.second < right.second;
+  }
+};
+
+int read_json(std::string filename, lumi_json& json){
+
+  std::pair <int,int> lumi;
+
+  boost::property_tree::ptree pt;
+  boost::property_tree::read_json(filename, pt);
+
+  BOOST_FOREACH(boost::property_tree::ptree::value_type &json_run, pt.get_child("")){
+    int irun = atoi(json_run.first.data());
+    BOOST_FOREACH(boost::property_tree::ptree::value_type &lumi_ranges, json_run.second.get_child("")){
+      int ilumi[2] = {};
+
+      int count = 0;
+      BOOST_FOREACH(boost::property_tree::ptree::value_type &lumi_boundaries, lumi_ranges.second.get_child("")){
+	ilumi[count] = atoi(lumi_boundaries.second.data().data());
+	count++;
+      }
+      
+      for (;ilumi[0] <= ilumi[1]; ilumi[0]++){
+	lumi = std::make_pair(irun, ilumi[0]);
+	json.push_back(lumi);
+      }
+    }
+  }
+
+  sort( json.begin(), json.end(),  compare_lumi());
+  json.erase( unique( json.begin(), json.end() ), json.end() );
+  
+  return 0;
+}
+
+bool isGoodLumi(const std::pair<int, int>& lumi, const lumi_json& json){
+  static compare_lumi compare;
+  static std::pair<int,int> oldlumi = lumi;
+  static bool old = std::binary_search(json.begin(), json.end(), lumi, compare_lumi());
+  
+  if(lumi.first != oldlumi.first || lumi.second != oldlumi.second){
+    oldlumi = lumi;
+    old = std::binary_search(json.begin(), json.end(), lumi, compare_lumi());
+  }
+
+  return old;
+}
+
+bool isGoodLumi(int run, int lumi, const lumi_json& json){
+  std::pair<int, int> run_lumi = std::make_pair(run, lumi);
+  return isGoodLumi(run_lumi, json);
+}
+
+
 int main(int argc, char * argv[]) {
 
-  // first argument - config file 
-  // second argument - filelist
-
+  // first argument - config file for analysis
+  // second argument - config file for process
+  // third argument - index of first file to run on (optional, ignored if only one file is used)
+  // fourth argument - index of last file to run on (optional, ignored if only one file is used)
+  
   using namespace std;
 
-  // **** configuration
+  // **** configuration analysis
   Config cfg(argv[1]);
 
   // vertex cuts
@@ -291,10 +417,33 @@ int main(int argc, char * argv[]) {
   // pair selection
   const float dRleptonsCut   = cfg.get<float>("dRleptonsCut");
 
-  // additional lepton veto
-  const float ptDiElectronVeto   = cfg.get<float>("ptDiElectronVeto");  
-  const float etaDiElectronVeto  = cfg.get<float>("etaDiElectronVeto");
+  // dielectron veto
+  const float ptDiElectronVeto     = cfg.get<float>("ptDiElectronVeto");  
+  const float etaDiElectronVeto    = cfg.get<float>("etaDiElectronVeto");
+  const float dxyDiElectronVeto    = cfg.get<float>("dxyDiElectronVeto");  
+  const float dzDiElectronVeto     = cfg.get<float>("dzDiElectronVeto"); 
+  const bool applyDiElectronVetoId = cfg.get<bool>("applyDiElectronVetoId");
+  const bool applyDiElectronOS     = cfg.get<bool>("applyDiElectronOS");
+  const float isoDiElectronVeto    = cfg.get<float>("isoDiElectronVeto");
+  const float drDiElectronVeto     = cfg.get<float>("drDiElectronVeto");  
   
+  // extra electron veto
+  const float ptVetoElectronCut  = cfg.get<float>("ptVetoElectronCut");  
+  const float etaVetoElectronCut = cfg.get<float>("etaVetoElectronCut");
+  const float dxyVetoElectronCut = cfg.get<float>("dxyVetoElectronCut");  
+  const float dzVetoElectronCut  = cfg.get<float>("dzVetoElectronCut"); 
+  const bool applyVetoElectronId = cfg.get<bool>("applyVetoElectronId");
+  const float isoVetoElectronCut = cfg.get<float>("isoVetoElectronCut");  
+  
+  // extra muon veto
+  const float ptVetoMuonCut  = cfg.get<float>("ptVetoMuonCut");  
+  const float etaVetoMuonCut = cfg.get<float>("etaVetoMuonCut");
+  const float dxyVetoMuonCut = cfg.get<float>("dxyVetoMuonCut");  
+  const float dzVetoMuonCut  = cfg.get<float>("dzVetoMuonCut"); 
+  const bool applyVetoMuonId = cfg.get<bool>("applyVetoMuonId");
+  const float isoVetoMuonCut = cfg.get<float>("isoVetoMuonCut");  
+
+    
   // topological cuts
   const float dZetaCut       = cfg.get<float>("dZetaCut");
   const bool oppositeSign    = cfg.get<bool>("oppositeSign");
@@ -316,31 +465,98 @@ int main(int argc, char * argv[]) {
   const bool checkOverlap = cfg.get<bool>("CheckOverlap");
   const bool debug = cfg.get<bool>("debug");
   
-  // **** end of configuration
+  // **** end of configuration analysis
 
-  // file name and tree name
-  TString rootFileName(argv[2]);
-  std::ifstream fileList(argv[2]);
-  std::ifstream fileList0(argv[2]);
+  // configuration process
+
+  Config cfg2(argv[2]);
+
+  const string sample = cfg2.get<string>("sample");
+  const bool isData = cfg2.get<bool>("isData");
+  const string infiles = cfg2.get<string>("infiles");
+  float xs = -1.;
+  lumi_json json;
+  if (isData){ 
+    const string json_name = cfg2.get<string>("JSON");
+    read_json(json_name, json);
+  }
+  else{
+    xs = cfg2.get<float>("xs");
+  }
+  // **** end of configuration analysis
+  
+  // Trigger Configuration
+
+  int singleEle = 10;
+
+  int xEle = 7;
+  int xTau = 14;
+  int xOverlap = 8;
+
+  if (isData){
+    singleEle = 15;
+
+    xEle = 11;
+    xTau = 25;
+    xOverlap = 12;
+  }
+  
+  // **** end of Trigger configuration
+  
+  int ifile = 0;
+  int jfile = -1;
+
+  if (argc > 3)
+    ifile = atoi(argv[3]);
+  if (argc > 4)
+    jfile = atoi(argv[4]);
+  
+  // create input files list
+  std::vector<std::string> fileList;  
+  if (infiles.find(".root") != std::string::npos){
+    ifile = 0;
+    jfile = 1;
+
+    fileList.push_back(infiles);
+  }
+  else{
+    ifstream input;
+    std::string infile;
+    
+    input.open(infiles);
+
+    while(true){
+      input>>infile;
+      if(!input.eof()){
+	if (infile.length() > 0)
+	  fileList.push_back(infile);
+      }
+      else
+	break;
+    }
+
+    if(jfile < 0)
+      jfile = fileList.size();   
+  }
+
+  TString rootFileName(sample);
   std::string ntupleName("makeroottree/AC1B");
 
-  
+  // output fileName with histograms
   rootFileName += "_et_Sync.root";
   std::cout <<rootFileName <<std::endl;  
 
-  // output fileName with histograms
   TFile * file = new TFile( rootFileName ,"recreate");
   file->cd("");
 
   TH1F * inputEventsH = new TH1F("inputEventsH","",1,-0.5,0.5);
-  TTree * tree = new TTree("TauCheck","TauCheck");
+  TH1F * nWeightedEventsH = new TH1F("nWeightedEvents", "", 1, -0.5,0.5);
   
+  TTree * tree = new TTree("TauCheck","TauCheck");
+
   Spring15Tree *otree = new Spring15Tree(tree);
 
   int nTotalFiles = 0;
-  std::string dummy;
-  // count number of files --->
-  while (fileList0 >> dummy) nTotalFiles++;
 
   int nEvents = 0;
   int selEvents = 0;
@@ -365,13 +581,10 @@ int main(int argc, char * argv[]) {
   std::ofstream fileOutput("overlap.out");
 
 
-  for (int iF=0; iF<nTotalFiles; ++iF) {
+  for (int iF=ifile; iF<jfile; ++iF) {
 
-    std::string filen;
-    fileList >> filen;
-
-    std::cout << "file " << iF+1 << " out of " << nTotalFiles << " filename : " << filen << std::endl;
-    TFile * file_ = TFile::Open(TString(filen));
+    std::cout << "file " << iF+1 << " out of " << fileList.size() << " filename : " << fileList[iF] << std::endl;
+    TFile * file_ = TFile::Open(fileList[iF].data());
     
     TTree * _tree = NULL;
     _tree = (TTree*)file_->Get(TString(ntupleName));
@@ -391,7 +604,7 @@ int main(int argc, char * argv[]) {
     for (int iE=0;iE<NE;++iE)
       inputEventsH->Fill(0.);
 
-    AC1B analysisTree(_tree);
+    AC1B analysisTree(_tree, isData);
     
     Long64_t numberOfEntries = analysisTree.GetEntries();
     
@@ -400,6 +613,11 @@ int main(int argc, char * argv[]) {
     for (Long64_t iEntry=0; iEntry<numberOfEntries; iEntry++) {       
       analysisTree.GetEntry(iEntry);
       nEvents++;
+
+      if (isData)
+	nWeightedEventsH->Fill(0., 1.);
+      else
+	nWeightedEventsH->Fill(0., analysisTree.genweight);
       
       if (nEvents%10000==0) 
 	cout << "      processed " << nEvents << " events" << endl; 
@@ -407,7 +625,7 @@ int main(int argc, char * argv[]) {
       otree->run = int(analysisTree.event_run);
       otree->lumi = int(analysisTree.event_luminosityblock);
       otree->evt = int(analysisTree.event_nr);
-
+      
       bool overlapEvent = true;
       for (unsigned int iEvent=0; iEvent<runList.size(); ++iEvent) {
 	if (runList.at(iEvent)==otree->run && eventList.at(iEvent)==otree->evt) {
@@ -423,8 +641,14 @@ int main(int argc, char * argv[]) {
 	fileOutput << "Run = " << otree->run << "   Event = " << otree->evt << std::endl;
       }
 
+      if (isData && !isGoodLumi(otree->run, otree->lumi, json))
+	continue;
+      
       // weights
-      otree->mcweight = 0;
+      otree->mcweight = 1.;
+      if(!isData)
+	otree->mcweight = analysisTree.genweight;
+      otree->xs = xs;
       otree->puweight = 0;
       otree->trigweight_1 = 0;
       otree->trigweight_2 = 0;
@@ -502,7 +726,7 @@ int main(int argc, char * argv[]) {
 	float ctgTheta = analysisTree.tau_pz[it] / sqrt(analysisTree.tau_px[it]*analysisTree.tau_px[it] + analysisTree.tau_py[it]*analysisTree.tau_py[it]);
 	float zImpact = analysisTree.tau_vertexz[it] + 130. * ctgTheta;
 
-	if ( zImpact > -1.5 && zImpact < 0.5) continue;
+	//if ( zImpact > -1.5 && zImpact < 0.5) continue;
 
 	taus.push_back(it);
       }
@@ -552,9 +776,9 @@ int main(int argc, char * argv[]) {
 				analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
 
 	  if (dRtrig < deltaRTrigMatch){
-	    if (analysisTree.trigobject_filters[iT][7] && analysisTree.trigobject_filters[iT][8]) // Ele22 Leg
+	    if (analysisTree.trigobject_filters[iT][xEle] && analysisTree.trigobject_filters[iT][xOverlap]) // Ele22 Leg
 	      isTrigEle22 = true;	      
-	    if (analysisTree.trigobject_filters[iT][10]) // Ele32 Leg
+	    if (analysisTree.trigobject_filters[iT][singleEle]) // Ele32 Leg
 	      isTrigEle32 = true;
 	  }
 	}
@@ -603,7 +827,7 @@ int main(int argc, char * argv[]) {
 				  analysisTree.trigobject_eta[iT],analysisTree.trigobject_phi[iT]);
 	    
 	    if (dRtrig < deltaRTrigMatch){
-	      if (analysisTree.trigobject_filters[iT][14] && analysisTree.trigobject_filters[iT][8]){
+	      if (analysisTree.trigobject_filters[iT][xTau] && analysisTree.trigobject_filters[iT][xOverlap]){
 		isTrigTau = true;
 		if (dRtrig < dRtrig_min)
 		  dRtrig_min = dRtrig;
@@ -615,26 +839,17 @@ int main(int argc, char * argv[]) {
 	    fileOutput << "Tau " << it << " -> isTrigTau = " << isTrigTau << " DR="<<dRtrig_min<<std::endl;
 
 	  bool trigMatch = isTrigEle32 || (isTrigEle22 && isTrigTau);
-
-	  if (isTrigEle32 && analysisTree.hltriggerresults_second[4]==false)
-	    if (debug)
-	      std::cout<<"IsoEle32 Trigger Mismatch"<<std::endl;
-
-	  
-	  if (isTrigEle22 && isTrigTau && analysisTree.hltriggerresults_second[1]==false)
-	    if (debug)
-	      std::cout<<"xEleTau Trigger Mismatch"<<std::endl;
-	      
 	  if (!trigMatch) continue;
 	  
 	  bool isKinematicMatch = false;
-	  if (isTrigEle32) {
-	    if (analysisTree.electron_pt[eIndex]>ptElectronHighCut)
-	      isKinematicMatch = true;
-	  }	  
+	  
 	  if (isTrigEle22 && isTrigTau) {
             if (analysisTree.electron_pt[eIndex]>ptElectronLowCut && analysisTree.tau_pt[tIndex]>ptTauHighCut)
               isKinematicMatch = true;
+	  }
+	  else if (isTrigEle32) {
+	    if (analysisTree.electron_pt[eIndex]>ptElectronHighCut)
+	      isKinematicMatch = true;
 	  }
 	  	  
 	  if (!isKinematicMatch) continue;
@@ -642,18 +857,23 @@ int main(int argc, char * argv[]) {
 	  bool changePair =  false;
 	  
 	  if (relIsoEle<isoEleMin) {
+	    if(debug)
+	      fileOutput<<"ChangePair ele iso"<<std::endl;
 	    changePair = true;
 	  }
 	  else if (fabs(relIsoEle - isoEleMin) < 1.e-5) {
 	    if (analysisTree.electron_pt[eIndex] > analysisTree.electron_pt[electronIndex]) {
+	      fileOutput<<"ChangePair ele pt"<<std::endl; 
 	      changePair = true;
 	    }	    
 	    else if (fabs(analysisTree.electron_pt[eIndex] - analysisTree.electron_pt[electronIndex]) < 1.e-5) {
 	      if (absIsoTau < isoTauMin) {
+		fileOutput<<"ChangePair tau iso"<<std::endl; 
 		changePair = true;
 	      }
 	      else if ((absIsoTau - isoTauMin) < 1.e-5){
 		if (analysisTree.tau_pt[tIndex] > analysisTree.tau_pt[tauIndex]) {
+		  fileOutput<<"ChangePair tau pt"<<std::endl; 
 		  changePair = true;
 		}
 	      }
@@ -672,6 +892,9 @@ int main(int argc, char * argv[]) {
       if (electronIndex<0) continue;
       if (tauIndex<0) continue;
       
+      if(debug)
+	fileOutput << "Selected Pair (e,tau) = "<<electronIndex<<", "<<tauIndex<<std::endl;
+
       // filling electron variables
       otree->pt_1 = analysisTree.electron_pt[electronIndex];
       otree->eta_1 = analysisTree.electron_eta[electronIndex];
@@ -735,17 +958,15 @@ int main(int argc, char * argv[]) {
       // opposite charge
       otree->os = (otree->q_1 * otree->q_2) < 0.;
 
-      // dimuon veto
+      // dilepton veto
       otree->dilepton_veto = 0;
 
       for (unsigned int ie = 0; ie<analysisTree.electron_count; ++ie) {
 	if (analysisTree.electron_pt[ie]<ptDiElectronVeto) continue;
 	if (fabs(analysisTree.electron_eta[ie])>etaDiElectronVeto) continue;	
 	
-	if (fabs(analysisTree.electron_dxy[ie])>dxyElectronCut) continue;
-	if (fabs(analysisTree.electron_dz[ie])>dzElectronCut) continue;
-
-	if (otree->q_1 * analysisTree.electron_charge[ie] > 0.) continue;
+	if (fabs(analysisTree.electron_dxy[ie])>dxyDiElectronVeto) continue;
+	if (fabs(analysisTree.electron_dz[ie])>dzDiElectronVeto) continue;
 
 	float neutralHadIsoEle = analysisTree.electron_neutralHadIso[ie];
 	float photonIsoEle = analysisTree.electron_photonIso[ie];
@@ -761,22 +982,131 @@ int main(int argc, char * argv[]) {
 	neutralIsoEle = TMath::Max(float(0),neutralIsoEle); 
 	float absIsoEle =  chargedHadIsoEle + neutralIsoEle;
 	float relIsoEle = absIsoEle/analysisTree.electron_pt[ie];
+	if(relIsoEle > isoDiElectronVeto) continue;
 	
-	if(relIsoEle > 0.3) continue;
+	bool passedVetoId = electron_Phys14_25ns_Veto( analysisTree.electron_superclusterEta[ie],
+						       analysisTree.electron_deltaetasuperclustertrack[ie],
+						       analysisTree.electron_deltaphisuperclustertrack[ie],
+						       analysisTree.electron_full5x5_sigmaietaieta[ie],
+						       analysisTree.electron_ehcaloverecal[ie],
+						       analysisTree.electron_dxy[ie],
+						       analysisTree.electron_dz[ie],
+						       analysisTree.electron_ooemoop[ie],
+						       relIsoEle,
+						       analysisTree.electron_nmissinginnerhits[ie],
+						       analysisTree.electron_pass_conversion[ie]);
+	if (!passedVetoId && applyDiElectronVetoId) continue;
+	
+	for (unsigned int je = ie+1; je<analysisTree.electron_count; ++je) {
+	  if (analysisTree.electron_pt[je]<ptDiElectronVeto) continue;
+	  if (fabs(analysisTree.electron_eta[je])>etaDiElectronVeto) continue;	
+	  
+	  if (fabs(analysisTree.electron_dxy[je])>dxyDiElectronVeto) continue;
+	  if (fabs(analysisTree.electron_dz[je])>dzDiElectronVeto) continue;
+	  
+	  if (analysisTree.electron_charge[ie] * analysisTree.electron_charge[je] > 0. && applyDiElectronOS) continue;
 
-	float dr = deltaR(analysisTree.electron_eta[ie],analysisTree.electron_phi[ie],
-			  otree->eta_1,otree->phi_1);
-	if(dr<0.15) continue;
+	  neutralHadIsoEle = analysisTree.electron_neutralHadIso[je];
+	  photonIsoEle = analysisTree.electron_photonIso[je];
+	  chargedHadIsoEle = analysisTree.electron_chargedHadIso[je];
+	  puIsoEle = analysisTree.electron_puIso[je];
+	  if (isIsoR03) {
+	    neutralHadIsoEle = analysisTree.electron_r03_sumNeutralHadronEt[je];
+	    photonIsoEle = analysisTree.electron_r03_sumPhotonEt[je];
+	    chargedHadIsoEle = analysisTree.electron_r03_sumChargedHadronPt[je];
+	    puIsoEle = analysisTree.electron_r03_sumPUPt[je];
+	  }
+	  neutralIsoEle = neutralHadIsoEle + photonIsoEle - 0.5*puIsoEle;
+	  neutralIsoEle = TMath::Max(float(0),neutralIsoEle); 
+	  absIsoEle =  chargedHadIsoEle + neutralIsoEle;
+	  relIsoEle = absIsoEle/analysisTree.electron_pt[je];
+	
+	  if(relIsoEle > isoDiElectronVeto) continue;	
 
-	otree->dilepton_veto = 1;
+	  passedVetoId = electron_Phys14_25ns_Veto( analysisTree.electron_superclusterEta[je],
+						    analysisTree.electron_deltaetasuperclustertrack[je],
+						    analysisTree.electron_deltaphisuperclustertrack[je],
+						    analysisTree.electron_full5x5_sigmaietaieta[je],
+						    analysisTree.electron_ehcaloverecal[je],
+						    analysisTree.electron_dxy[je],
+						    analysisTree.electron_dz[je],
+						    analysisTree.electron_ooemoop[je],
+						    relIsoEle,
+						    analysisTree.electron_nmissinginnerhits[je],
+						    analysisTree.electron_pass_conversion[je]);
+	  if (!passedVetoId && applyDiElectronVetoId) continue;
+	  
+	  float dr = deltaR(analysisTree.electron_eta[ie],analysisTree.electron_phi[ie],
+			    analysisTree.electron_eta[je],analysisTree.electron_phi[je]);
+
+	  if(dr<drDiElectronVeto) continue;
+
+	  otree->dilepton_veto = 1;
+	}
       }
       
-      // extra electron veto
+      // extra electron veto 
       otree->extraelec_veto = 0;
 
+      for (unsigned int ie = 0; ie<analysisTree.electron_count; ++ie) {
+	if (int(ie)==electronIndex) continue;
+	if (analysisTree.electron_pt[ie]<ptVetoElectronCut) continue;
+	if (fabs(analysisTree.electron_eta[ie])>etaVetoElectronCut) continue;
+	if (fabs(analysisTree.electron_dxy[ie])>dxyVetoElectronCut) continue;
+	if (fabs(analysisTree.electron_dz[ie])>dzVetoElectronCut) continue;
+	bool electronMvaId = electronMvaIdWP90(analysisTree.electron_pt[ie],
+					       analysisTree.electron_superclusterEta[ie],
+					       analysisTree.electron_mva_id_nontrigPhys14[ie]);
+	if (!electronMvaId && applyVetoElectronId) continue;
+	if (!analysisTree.electron_pass_conversion[ie] && applyVetoElectronId) continue;
+	if (analysisTree.electron_nmissinginnerhits[ie]>1 && applyVetoElectronId) continue;
+	float neutralHadIsoEle = analysisTree.electron_neutralHadIso[ie];
+	float photonIsoEle = analysisTree.electron_photonIso[ie];
+	float chargedHadIsoEle = analysisTree.electron_chargedHadIso[ie];
+	float puIsoEle = analysisTree.electron_puIso[ie];
+	if (isIsoR03) {
+	  neutralHadIsoEle = analysisTree.electron_r03_sumNeutralHadronEt[ie];
+	  photonIsoEle = analysisTree.electron_r03_sumPhotonEt[ie];
+	  chargedHadIsoEle = analysisTree.electron_r03_sumChargedHadronPt[ie];
+	  puIsoEle = analysisTree.electron_r03_sumPUPt[ie];
+	}
+	float neutralIsoEle = neutralHadIsoEle + photonIsoEle - 0.5*puIsoEle;
+	neutralIsoEle = TMath::Max(float(0),neutralIsoEle); 
+	float absIsoEle =  chargedHadIsoEle + neutralIsoEle;
+	float relIsoEle = absIsoEle/analysisTree.electron_pt[ie];	
+	if (relIsoEle>isoVetoElectronCut) continue;
+	
+	otree->extraelec_veto = 1;
+      }
+            
       // extra muon veto
       otree->extramuon_veto = 0;
-      
+
+      for (unsigned int im = 0; im<analysisTree.muon_count; ++im) {
+	if (analysisTree.muon_pt[im]<ptVetoMuonCut) continue;
+	if (fabs(analysisTree.muon_eta[im])>etaVetoMuonCut) continue;
+	if (fabs(analysisTree.muon_dxy[im])>dxyVetoMuonCut) continue;
+	if (fabs(analysisTree.muon_dz[im])>dzVetoMuonCut) continue;
+	if (applyVetoMuonId && !analysisTree.muon_isMedium[im]) continue;
+	float neutralHadIsoMu = analysisTree.muon_neutralHadIso[im];
+	float photonIsoMu = analysisTree.muon_photonIso[im];
+	float chargedHadIsoMu = analysisTree.muon_chargedHadIso[im];
+	float puIsoMu = analysisTree.muon_puIso[im];
+	if (isIsoR03) {
+	  neutralHadIsoMu = analysisTree.muon_r03_sumNeutralHadronEt[im];
+	  photonIsoMu = analysisTree.muon_r03_sumPhotonEt[im];
+	  chargedHadIsoMu = analysisTree.muon_r03_sumChargedHadronPt[im];
+	  puIsoMu = analysisTree.muon_r03_sumPUPt[im];
+	}
+	float neutralIsoMu = neutralHadIsoMu + photonIsoMu - 0.5*puIsoMu;
+	neutralIsoMu = TMath::Max(float(0),neutralIsoMu); 
+	float absIsoMu = chargedHadIsoMu + neutralIsoMu;
+	float relIsoMu = absIsoMu/analysisTree.muon_pt[im];
+	if (relIsoMu>isoVetoMuonCut) continue;
+
+	otree->extramuon_veto = 1;
+      }
+
       // svfit variables
       otree->m_sv = -9999;
       otree->pt_sv = -9999;
@@ -790,6 +1120,15 @@ int main(int argc, char * argv[]) {
       otree->metcov01 = analysisTree.pfmet_sigxy;
       otree->metcov10 = analysisTree.pfmet_sigyx;
       otree->metcov11 = analysisTree.pfmet_sigyy;
+
+      float met_x = analysisTree.pfmet_ex;
+      float met_y = analysisTree.pfmet_ey;
+      float met_x2 = met_x * met_x;
+      float met_y2 = met_y * met_y;
+
+      // computation of mt
+      otree->mt_1 = sqrt(2*otree->pt_1*otree->met*(1.-cos(otree->phi_1-otree->metphi)));
+      otree->mt_2 = sqrt(2*otree->pt_2*otree->met*(1.-cos(otree->phi_2-otree->metphi)));       
       
       // bisector of muon and tau transverse momenta
       float electronUnitX = electronLV.Px()/electronLV.Pt();
@@ -828,8 +1167,8 @@ int main(int argc, char * argv[]) {
 	otree->mvacov10 = log(0);
 	otree->mvacov11 = log(0);
 
-	otree->mt_1 = log(0);
-	otree->mt_2 = log(0);
+	//otree->mt_1 = log(0);
+	//otree->mt_2 = log(0);
 	
 	otree->pzetamiss = log(0);	
       }
@@ -847,8 +1186,8 @@ int main(int argc, char * argv[]) {
 	otree->mvacov11 = analysisTree.mvamet_sigyy[iMet];
 
 	// computation of mt
-	otree->mt_1 = sqrt(2*otree->pt_1*otree->mvamet*(1.-cos(otree->phi_1-otree->mvametphi)));
-	otree->mt_2 = sqrt(2*otree->pt_2*otree->mvamet*(1.-cos(otree->phi_2-otree->mvametphi)));  
+	//otree->mt_1 = sqrt(2*otree->pt_1*otree->mvamet*(1.-cos(otree->phi_1-otree->mvametphi)));
+	//otree->mt_2 = sqrt(2*otree->pt_2*otree->mvamet*(1.-cos(otree->phi_2-otree->mvametphi)));  
 	
 	// computation of DZeta variable
 	otree->pzetamiss = analysisTree.pfmet_ex*zetaX + analysisTree.pfmet_ey*zetaY;
@@ -901,7 +1240,7 @@ int main(int argc, char * argv[]) {
 
 	// apply pf jet Id
 	if (applyJetPfId&&!isPFJetId) continue;
-
+	
 	// pu jet Id
 	if (applyJetPuId&&!puJetIdLoose(analysisTree.pfjet_eta[jet],analysisTree.pfjet_pu_jet_full_mva[jet])) continue;
 	

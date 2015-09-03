@@ -288,6 +288,7 @@ class NTupleMaker : public edm::EDAnalyzer{
   bool crecphoton;
   bool crecpfjet;
   bool crecpfmet;
+  bool crecpfmetcorr;
   bool crecmvamet;
 
   vector<string> cHLTriggerPaths;
@@ -330,6 +331,7 @@ class NTupleMaker : public edm::EDAnalyzer{
   edm::InputTag TauCollectionTag_;
   edm::InputTag JetCollectionTag_;
   edm::InputTag MetCollectionTag_;
+  edm::InputTag MetCorrCollectionTag_;
   std::vector<edm::InputTag> MvaMetCollectionsTag_;
   edm::InputTag TrackCollectionTag_;
   edm::InputTag GenParticleCollectionTag_;
@@ -751,6 +753,18 @@ class NTupleMaker : public edm::EDAnalyzer{
   Float_t pfmet_sigxy;
   Float_t pfmet_sigyx;
   Float_t pfmet_sigyy;
+
+  Float_t pfmetcorr_ex;
+  Float_t pfmetcorr_ey;
+  Float_t pfmetcorr_ez;
+  Float_t pfmetcorr_pt;
+  Float_t pfmetcorr_phi;
+  Float_t pfmetcorr_sumet;
+
+  Float_t pfmetcorr_sigxx;
+  Float_t pfmetcorr_sigxy;
+  Float_t pfmetcorr_sigyx;
+  Float_t pfmetcorr_sigyy;
 
   UInt_t mvamet_count;
   Float_t mvamet_ex[M_mvametmaxcount];

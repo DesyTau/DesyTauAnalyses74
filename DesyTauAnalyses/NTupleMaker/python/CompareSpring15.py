@@ -1,5 +1,5 @@
 from math import fabs, sqrt, log10, sin, cos, acos
-from ROOT import TFile, TChain
+from ROOT import TFile, TChain, TTree
 
 def areEqual( x1, x2):
     if( x1 == 0. or x2 == 0.):
@@ -40,6 +40,18 @@ def load_entries(tree):
     l=[]
     for ievt in range(tree.GetEntries()):
         tree.GetEntry(ievt)
+	
+	if(tree.iso_1>0.1):
+	    continue
+	if(tree.againstMuonLoose3_2 < 0.5 or tree.againstElectronTightMVA5_2 < 0.5 or tree.byCombinedIsolationDeltaBetaCorrRaw3Hits_2 > 1.5):
+	    continue
+
+	if(tree.dilepton_veto > 0. or tree.extramuon_veto > 0. or tree.extraelec_veto > 0.):
+	    continue
+
+	if(tree.os==0):
+	    continue
+ 	
         l.append((ievt, int(tree.evt)))
 
     l.sort(key=lambda x: x[1])
@@ -72,11 +84,20 @@ class CompareSpring15:
         self.ref=ref
         self.test=test
                 
-        self.cref=TChain(ref.split(":")[1])
-        self.ctest=TChain(test.split(":")[1])
+        #self.cref=TChain(ref.split(":")[1])
+        #self.ctest=TChain(test.split(":")[1])
 
-        self.cref.Add(ref.split(":")[0])
-        self.ctest.Add(test.split(":")[0])
+        #self.cref.Add(ref.split(":")[0])
+        #self.ctest.Add(test.split(":")[0])
+
+	self.fref=TFile(ref.split(":")[0])
+	self.ftest=TFile(test.split(":")[0])
+
+	self.cref=TTree()
+	self.fref.GetObject(ref.split(":")[1], self.cref)
+
+	self.ctest=TTree()
+        self.ftest.GetObject(test.split(":")[1], self.ctest)
 
         self.lref=load_entries( self.cref)
         self.ltest=load_entries( self.ctest)
@@ -92,7 +113,11 @@ class CompareSpring15:
         self.test_min_pt_2 = 9999999999.;  
         
         iref=0
-        itest=0        
+        itest=0
+
+	self.cref.LoadBaskets(2000000000)
+	self.ctest.LoadBaskets(2000000000)
+        
         while(iref<len(self.lref)):
             ref_id=self.lref[iref][1]
             
@@ -129,9 +154,9 @@ class CompareSpring15:
 
             # compare leptons
             if( not areEqual(self.cref.pt_1, self.ctest.pt_1) or
-                #not areEqual(self.cref.iso_1, self.ctest.iso_1) or
-                not areEqual(self.cref.pt_2, self.ctest.pt_2) #or
-                #not areEqual(self.cref.iso_2, self.ctest.iso_2)
+                not areEqual(self.cref.iso_1, self.ctest.iso_1) or
+                not areEqual(self.cref.pt_2, self.ctest.pt_2) or
+                not areEqual(self.cref.iso_2, self.ctest.iso_2)
             ):
 
                 isGood = False;
@@ -174,6 +199,14 @@ class CompareSpring15:
         
         print "Events missing in test tree:"
         print [x[1] for x in self.test_missing]
+
+	for x in self.test_missing:
+	    self.cref.GetEntry(x[0])
+	    print str(self.cref.run)+":"+str(self.cref.lumi)+":"+str(self.cref.evt)
+
+        for x in self.ref_missing:
+            self.ctest.GetEntry(x[0])
+            print str(self.ctest.run)+":"+str(self.ctest.lumi)+":"+str(self.ctest.evt)
 
         print
         print "Events missing in ref tree:"
