@@ -252,6 +252,15 @@ public :
    Float_t         pfmet_sigxy;
    Float_t         pfmet_sigyx;
    Float_t         pfmet_sigyy;
+   Float_t         pfmetcorr_ex;
+   Float_t         pfmetcorr_ey;
+   Float_t         pfmetcorr_ez;
+   Float_t         pfmetcorr_pt;
+   Float_t         pfmetcorr_phi;
+   Float_t         pfmetcorr_sigxx;
+   Float_t         pfmetcorr_sigxy;
+   Float_t         pfmetcorr_sigyx;
+   Float_t         pfmetcorr_sigyy;
    Float_t         genmet_ex;
    Float_t         genmet_ey;
    UInt_t          mvamet_count;
@@ -559,6 +568,15 @@ public :
    TBranch        *b_pfmet_sigxy;   //!
    TBranch        *b_pfmet_sigyx;   //!
    TBranch        *b_pfmet_sigyy;   //!
+   TBranch        *b_pfmetcorr_ex;   //!
+   TBranch        *b_pfmetcorr_ey;   //!
+   TBranch        *b_pfmetcorr_ez;   //!
+   TBranch        *b_pfmetcorr_pt;   //!
+   TBranch        *b_pfmetcorr_phi;   //!
+   TBranch        *b_pfmetcorr_sigxx;   //!
+   TBranch        *b_pfmetcorr_sigxy;   //!
+   TBranch        *b_pfmetcorr_sigyx;   //!
+   TBranch        *b_pfmetcorr_sigyy;   //!
    TBranch        *b_genmet_ex;   //!
    TBranch        *b_genmet_ey;   //!
    TBranch        *b_mvamet_count;   //!
@@ -1009,10 +1027,19 @@ void AC1B::Init(TTree *tree, bool isData)
    fChain->SetBranchAddress("pfmet_ez", &pfmet_ez, &b_pfmet_ez);
    fChain->SetBranchAddress("pfmet_pt", &pfmet_pt, &b_pfmet_pt);
    fChain->SetBranchAddress("pfmet_phi", &pfmet_phi, &b_pfmet_phi);
-   fChain->SetBranchAddress("pfmet_sigxx", &pfmet_sigxx, &b_pfmet_sigxx);
-   fChain->SetBranchAddress("pfmet_sigxy", &pfmet_sigxy, &b_pfmet_sigxy);
-   fChain->SetBranchAddress("pfmet_sigyx", &pfmet_sigyx, &b_pfmet_sigyx);
-   fChain->SetBranchAddress("pfmet_sigyy", &pfmet_sigyy, &b_pfmet_sigyy);
+   fChain->SetBranchAddress("pfmet_sigxx", &pfmet_sigxx, &b_pfmetcorr_sigxx);
+   fChain->SetBranchAddress("pfmet_sigxy", &pfmet_sigxy, &b_pfmetcorr_sigxy);
+   fChain->SetBranchAddress("pfmet_sigyx", &pfmet_sigyx, &b_pfmetcorr_sigyx);
+   fChain->SetBranchAddress("pfmet_sigyy", &pfmet_sigyy, &b_pfmetcorr_sigyy);
+   fChain->SetBranchAddress("pfmetcorr_ex", &pfmetcorr_ex, &b_pfmetcorr_ex);
+   fChain->SetBranchAddress("pfmetcorr_ey", &pfmetcorr_ey, &b_pfmetcorr_ey);
+   fChain->SetBranchAddress("pfmetcorr_ez", &pfmetcorr_ez, &b_pfmetcorr_ez);
+   fChain->SetBranchAddress("pfmetcorr_pt", &pfmetcorr_pt, &b_pfmetcorr_pt);
+   fChain->SetBranchAddress("pfmetcorr_phi", &pfmetcorr_phi, &b_pfmetcorr_phi);
+   fChain->SetBranchAddress("pfmetcorr_sigxx", &pfmetcorr_sigxx, &b_pfmetcorr_sigxx);
+   fChain->SetBranchAddress("pfmetcorr_sigxy", &pfmetcorr_sigxy, &b_pfmetcorr_sigxy);
+   fChain->SetBranchAddress("pfmetcorr_sigyx", &pfmetcorr_sigyx, &b_pfmetcorr_sigyx);
+   fChain->SetBranchAddress("pfmetcorr_sigyy", &pfmetcorr_sigyy, &b_pfmetcorr_sigyy);
    fChain->SetBranchAddress("genmet_ex", &genmet_ex, &b_genmet_ex);
    fChain->SetBranchAddress("genmet_ey", &genmet_ey, &b_genmet_ey);
    fChain->SetBranchAddress("mvamet_count", &mvamet_count, &b_mvamet_count);
