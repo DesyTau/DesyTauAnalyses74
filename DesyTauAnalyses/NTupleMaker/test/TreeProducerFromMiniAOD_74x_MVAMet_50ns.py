@@ -166,32 +166,6 @@ if not applyResiduals:
 ### ------------------------------------------------------------------
 
 
-process.MINIAODSIMoutput = cms.OutputModule("PoolOutputModule",
-    compressionLevel = cms.untracked.int32(4),
-    compressionAlgorithm = cms.untracked.string('LZMA'),
-    eventAutoFlushCompressedSize = cms.untracked.int32(15728640),
-    outputCommands = cms.untracked.vstring( "keep *_slimmedMETs_*_*",
-                                            "keep *_slimmedMETsNoHF_*_*",
-                                            "keep *_patPFMetT1Txy_*_*",
-                                            "keep *_patPFMetT1TxyNoHF_*_*",
-                                            ),
-    fileName = cms.untracked.string('corMETMiniAOD.root'),
-    dataset = cms.untracked.PSet(
-        filterName = cms.untracked.string(''),
-        dataTier = cms.untracked.string('')
-    ),
-    dropMetaData = cms.untracked.string('ALL'),
-    fastCloning = cms.untracked.bool(False),
-    overrideInputFileSplitLevels = cms.untracked.bool(True)
-)
-
-
-process.MINIAODSIMoutput_step = cms.EndPath(process.MINIAODSIMoutput)
-
-
-
-
-
 #####################################################
   
 
