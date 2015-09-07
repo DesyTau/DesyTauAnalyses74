@@ -30,7 +30,7 @@
 //#include "TauAnalysis/CandidateTools/interface/candidateAuxFunctions.h"
 //#include "TauAnalysis/CandidateTools/interface/neuralMtautauAuxFunctions.h"
 //#include "BtagSF.hh" 
-//#include "LLRAnalysis/Utilities/interface/readJSONFile.h"
+//#include "readJSONFile.h"
 
 #include "Math/Vector3D.h"
 #include "Math/Vector4D.h"
@@ -98,12 +98,100 @@ typedef ROOT::Math::LorentzVector<ROOT::Math::PxPyPzE4D<double> > LV;
 //"/nfs/dust/cms/user/anayak/CMS/MyHTTAnalysis/data/Data_Pileup_2012_ReRecoPixel-600bins.root","pileup","pileup");
 
 //RecoilCorrector *RecoilCorrector_;
-
-enum MCEVENTTYPE{HTTHADHAD, HTTLEPHAD, HTTLEPLEP, HLL, ZTTHADHAD, ZTTLEPHAD, ZTTLEPLEP, ZLL, WLNU, WTAULEP, WTAUHAD, UNKNOWN};
+enum MotherNames{HIGGS=1, WBOSON, ZBOSON, TAU};
+enum MvaMetChannel{EMU=1, ETAU, MUTAU, TAUTAU, UNKNOWN};
+enum MCEVENTTYPE{HADHAD, LEPHAD, LEPLEP, LL, LNU, LEPNU, TAUNU, OTHERS};
 
 enum BVariation{kNo = 0, kDown = 1, kUp = 2};
 //BtagSF* btsf = new BtagSF(12345);
 
+//Reading json file and filter lumi section
+std::map<int, std::vector<std::pair<int, int> > >
+readJSONFile(const std::string& inFileName)
+{
+  std::ifstream inFile(inFileName.c_str(), std::ios::in);
+  
+  std::string line;
+  while(!inFile.eof())
+    {
+      std::string buffer;
+      inFile >> buffer;
+      line += buffer;
+    }
+  
+  // define map with result
+  std::map<int, std::vector<std::pair<int, int> > > jsonMap;
+  
+  // loop on JSON file
+  for(std::string::const_iterator it = line.begin(); it < line.end(); ++it)
+    {
+      // find run number
+      if( (*(it) == '"') && (*(it+7) == '"') )   
+        {
+	  std::string run(it+1, it+7);
+          //std::cout << "found run " << run << std::endl;
+	  
+          // find lumi sections
+	  std::vector<std::pair<int, int> > lumisections;
+          for(std::string::const_iterator it2 = it+10; it2 < line.end(); ++it2)
+            {
+              if( (*(it2) == ']') && (*(it2-1) == ']') ) break;
+              if( *(it2) != '[' ) continue;
+              
+	      std::string::const_iterator it_beg = it2;
+	      std::string::const_iterator it_mid;
+	      std::string::const_iterator it_end;
+	      
+              for(std::string::const_iterator it3 = it_beg; it3 < line.end(); ++it3)
+                {
+                  if( *(it3) == ',' ) it_mid = it3;
+                  if( *(it3) == ']' )
+                    {
+                      it_end = it3;
+                      break;
+                    }
+                }
+	      std::string lumi_beg(it_beg+1, it_mid);
+	      std::string lumi_end(it_mid+1, it_end);
+              //std::cout << "[" << lumi_beg;
+              //std::cout << ",";
+              //std::cout << lumi_end << "]" << std::endl;
+              
+	      std::pair<int, int> tempLS(atoi(lumi_beg.c_str()), atoi(lumi_end.c_str()));
+              lumisections.push_back(tempLS);
+              
+              it2 = it_end;
+            }
+          
+          jsonMap[atoi(run.c_str())] = lumisections;
+        } // find run number
+      
+    } // loop on JSON file
+  
+  return jsonMap;
+}
+
+bool AcceptEventByRunAndLumiSection(const int& runId, const int& lumiId,
+                                    std::map<int, std::vector<std::pair<int, int> > >& jsonMap)
+{
+  // select by runId
+  if( jsonMap.find(runId) == jsonMap.end() ) return false;
+  
+  // select by lumiId
+  std::vector<std::pair<int, int> > lumisections = jsonMap[runId];
+  
+  int skipEvent = true;
+  for(unsigned int i = 0; i < lumisections.size(); ++i)
+    if( (lumiId >= lumisections.at(i).first) &&
+        (lumiId <= lumisections.at(i).second) )
+      skipEvent = false;
+  
+  if( skipEvent == true ) return false;
+  
+  return true;
+}
+
+//compute DeltaR between two vectors
 double deltaR(LV v1, LV v2) {
 
   double deta = v1.Eta() - v2.Eta();
@@ -113,6 +201,7 @@ double deltaR(LV v1, LV v2) {
 
 }
 
+//Weights for N-Jet MC samples
 float reweightHEPNUPWJets(int hepNUP) {
 
   int nJets = hepNUP-5;
@@ -172,7 +261,7 @@ int getJetIDMVALoose(double pt, double eta, double rawMVA)
   }
   return passId;
 }
-
+//Remove duplication of events in ntuples
 bool checkEventIsDuplicated(MAPDITAU_run &mapDiTau, int run, int lumi, int event, float ptL1, float ptL2, float etaL1, float etaL2)
 {
   
@@ -493,14 +582,14 @@ void fillTrees_TauTauStream(TChain* currentTree,
   float genparticles_e[1000], genparticles_px[1000], genparticles_py[1000],genparticles_pz[1000],
     genparticles_vx[1000], genparticles_vy[1000], genparticles_vz[1000]; 
   Int_t genparticles_pdgid[1000], genparticles_status[1000];
-  Char_t genparticles_mother[1000];
+  UChar_t genparticles_mother[1000];
   
   UInt_t gentau_count;
   float gentau_e[20], gentau_px[20], gentau_py[20], gentau_pz[20],
     gentau_visible_e[20], gentau_visible_px[20], gentau_visible_py[20],
     gentau_visible_pz[20];
   int  gentau_decayMode[20]; 
-  Char_t gentau_mother[20];
+  UChar_t gentau_mother[20];
 
   std::vector<std::string> *hltriggerresultsV = new std::vector<std::string> ();
   std::vector<std::string> *run_hltfilters = new std::vector<std::string>();
@@ -879,6 +968,8 @@ void fillTrees_TauTauStream(TChain* currentTree,
   
   //event weights
   float evtweight, mcweight, puweight; 
+  //clasify DY events for splitting
+  bool isZtt_, isZll_, isZj_;
 
   outTree->Branch("ptj1",  &ptj1,"ptj1/F");
   outTree->Branch("ptj2",  &ptj2,"ptj2/F");
@@ -1048,16 +1139,36 @@ void fillTrees_TauTauStream(TChain* currentTree,
   outTree->Branch("weight", &evtweight, "weight/F");
   outTree->Branch("mcweight", &mcweight,"mcweight/F");
   outTree->Branch("puweight", &puweight, "puweight/F");
+  outTree->Branch("isZtt", &isZtt_, "isZtt/O");
+  outTree->Branch("isZll", &isZll_, "isZll/O");
+  outTree->Branch("isZj", &isZj_, "isZj/O");
   
+  // define JSON selector //
+  cout << "JSON selection" << endl;
+  int nJson=1;
+  string jsonFile[nJson];
+  string dirJson = "/nfs/dust/cms/user/anayak/CMS/OnSLC6/CMSSW_746p6_htt/src/DesyTauAnalyses/NTupleMaker/test/"; 
+  jsonFile[0] = dirJson+"/Cert_246908-251883_13TeV_PromptReco_Collisions15_JSON.txt"; // promptReco 
+  map<int, vector<pair<int, int> > > jsonMap[nJson] ;  
+  for(int iJ=0 ; iJ<nJson ; iJ++)
+    jsonMap[iJ] = readJSONFile(jsonFile[iJ]);
+  bool isGoodRun=false;
+
+  //isData
+  TString sample(sample_.c_str());
+  bool isData = sample.Contains("2015");
+
   int nEntries    = currentTree->GetEntries() ;
   float crossSection = xsec_;
   //float scaleFactor = (crossSection != 0) ? Lumi / (  float(nEventsRead)/(crossSection*skimEff_) )  : 1.0;
   //first loop over the whole events once to get the total sum of gen weights for normalization
   float totalGenWeight_ = 0;
-  for(int n = 0 ; n < nEntries ; n++) {
-    currentTree->GetEntry(n);
-
-    totalGenWeight_ += genweight;
+  if(!isData){
+    for(int n = 0 ; n < nEntries ; n++) {
+      currentTree->GetEntry(n);
+      
+      totalGenWeight_ += genweight;
+    }
   }
   float scaleFactor = (crossSection != 0) ? (Lumi*crossSection) / float(totalGenWeight_)  : 1.0;
 
@@ -1074,29 +1185,34 @@ void fillTrees_TauTauStream(TChain* currentTree,
   //cout<<"n1 = "<<n1<<endl;
   //cout<<"n2 = "<<n2<<endl;
 
-  TString sample(sample_.c_str());
+  //TString sample(sample_.c_str());
   cout << "Processing sample " << sample << endl;
   cout<< "nEventsRead = " << nEventsRead << endl;
   cout<< "nEntries    = " << nEntries << endl;
   cout<< "crossSection " << crossSection << " pb ==> scaleFactor " << scaleFactor << endl;
 
   //bool dyFinalState=false;
-  bool isData = sample.Contains("2012");
 
   ///////////////////////
   // LOOP OVER ENTRIES //
   ///////////////////////
 
   for(int n = n1 ; n < n2 ; n++) {
-  //for(int n = n1 ; n < 10000 ; n++) { 
+  //for(int n = n1 ; n < 1000 ; n++) { 
     //     cout<<"n/n2 = "<<n<<"/"<<n2<<endl;
-    //   for (int n = 0; n < nEntries ; n++) {
-    //for (int n = 0; n < 10000 ; n++) {
-
+    
     currentTree->GetEntry(n);
     if(n%1000==0) cout << n <<"/"<<(n2-n1)<< endl;
     //     if(n%1000==0) cout << n <<"/"<<nEntries<< endl;
 
+    // APPLY JSON SELECTION //
+    isGoodRun=true;
+
+    if(iJson_>=0)
+      isGoodRun = AcceptEventByRunAndLumiSection(event_run, event_luminosityblock, jsonMap[iJson_]);
+    
+    if(!isGoodRun) continue;
+    
     //cut on PV
     if(primvertex_count <= 0)continue;
     if(primvertex_ndof < 4)continue;
@@ -1115,19 +1231,16 @@ void fillTrees_TauTauStream(TChain* currentTree,
     rho_ = rhoNeutral;
     
     // Get Gen boson and daughters to clasify the event
-    //char genVName_;
-    LV genVP4_(0, 0, 0, 0);
+    LV genVP4_(0, 0, 0, 0); unsigned int genVType_ = 100;
     std::vector<LV> genLeptonP4_; genLeptonP4_.clear();
     std::vector<LV> genTauP4_; genTauP4_.clear();
     std::vector<LV> genTauVisP4_; genTauVisP4_.clear();
     std::vector<int>genLeptonPdgId_; genLeptonPdgId_.clear();
-    int nLepton_ = 0, TauLepDecay_ = 0;
+    int nLepton_ = 0, TauLepDecay_ = 0, TauHadDecay_ = 0;
 
     if(!isData){ //for mc only
 
       if( (sample_.find("WJets")!=string::npos && sample_.find("WWJets")==string::npos ) ||
-	  sample_.find("W1Jets")!=string::npos || sample_.find("W2Jets")!=string::npos ||
-	  sample_.find("W3Jets")!=string::npos || sample_.find("W4Jets")!=string::npos ||
 	  sample_.find("DYJets")!=string::npos || sample_.find("HToTauTau")!=string::npos ||
 	  sample_.find("SUSYGGH")!=string::npos || sample_.find("SUSYBBH")!=string::npos ||
           sample_.find("GGFH")!=string::npos || sample_.find("VBFH")!=string::npos
@@ -1136,64 +1249,46 @@ void fillTrees_TauTauStream(TChain* currentTree,
 	  for(unsigned int ig = 0; ig < genparticles_count; ig++){
 
 	    int GenPdgId = genparticles_pdgid[ig];
-	    //int GenStatus = genparticles_status[ig];
-	    if(fabs(GenPdgId) == 11 || fabs(GenPdgId) == 13) {
+	    int GenStatus = genparticles_status[ig];
+	    if(GenStatus == 1 && (fabs(GenPdgId) == 11 || fabs(GenPdgId) == 13)) {
 	      
-	      if(strcmp(&(genparticles_mother[ig]), "W") == 0 || strcmp(&(genparticles_mother[ig]), "Z") == 0 || strcmp(&(genparticles_mother[ig]), "H") == 0){
-		genLeptonP4_.push_back(LV(genparticles_px[ig], genparticles_py[ig], genparticles_pz[ig], genparticles_e[ig]));
-		genLeptonPdgId_.push_back(GenPdgId);
-		nLepton_++;
-		//genVName_ = genparticles_mother[ig];
-	      }
+	      genLeptonP4_.push_back(LV(genparticles_px[ig], genparticles_py[ig], genparticles_pz[ig], genparticles_e[ig]));
+	      genLeptonPdgId_.push_back(GenPdgId);
+	      nLepton_++;
+	      if(genparticles_mother[ig] == WBOSON || genparticles_mother[ig] == ZBOSON || genparticles_mother[ig] == HIGGS)
+		genVType_ = genparticles_mother[ig];
 	    }
 	  }
 
 	  for(unsigned int ig = 0; ig < gentau_count; ig++){
-	    if(strcmp(&(gentau_mother[ig]), "W") == 0 || strcmp(&(gentau_mother[ig]), "Z") == 0 || strcmp(&(gentau_mother[ig]), "H") == 0){
-	      genTauP4_.push_back(LV(gentau_px[ig], gentau_py[ig], gentau_pz[ig], gentau_e[ig]));
-	      genTauVisP4_.push_back(LV(gentau_visible_px[ig], gentau_visible_py[ig], gentau_visible_pz[ig], gentau_visible_e[ig]));
-	      //genVName_ =gentau_mother[ig];
-	      if(gentau_decayMode[ig] == 8 || gentau_decayMode[ig] == 9){
-		TauLepDecay_++;
-	      }
-	    }
+	    genTauP4_.push_back(LV(gentau_px[ig], gentau_py[ig], gentau_pz[ig], gentau_e[ig]));
+	    genTauVisP4_.push_back(LV(gentau_visible_px[ig], gentau_visible_py[ig], gentau_visible_pz[ig], gentau_visible_e[ig]));
+	    if(gentau_decayMode[ig] == 8 || gentau_decayMode[ig] == 9)
+	      TauLepDecay_++;
+	    else TauHadDecay_++;
+	    if(gentau_mother[ig] == WBOSON || gentau_mother[ig] == ZBOSON || gentau_mother[ig] == HIGGS)
+	      genVType_ = gentau_mother[ig];
 	  }
 
 	}
     }//end of MCInfo
 
-    //Classify event
-    /*
-    int EventType_ = UNKNOWN;
-    if(strcmp(&genVName_, "H") == 0){
-      if(nLepton_ >= 2) 
-	EventType_ = HLL;
-      else if(TauLepDecay_ >= 2)
-	EventType_ = HTTLEPLEP;
-      else if(TauLepDecay_ == 1 && genTauVisP4_.size() >= 2 )
-	EventType_ = HTTLEPHAD;
-      else if(TauLepDecay_ == 0 && genTauVisP4_.size() >= 2 )
-	EventType_ = HTTHADHAD;
-    }
-    else if(strcmp(&genVName_, "Z") == 0){
-      if(nLepton_ >= 2)
-        EventType_ = ZLL;
-      else if(TauLepDecay_ >= 2)
-        EventType_ = ZTTLEPLEP;
-      else if(TauLepDecay_ == 1 && genTauVisP4_.size() >= 2 )
-        EventType_ = ZTTLEPHAD;
-      else if(TauLepDecay_ == 0 && genTauVisP4_.size() >= 2 )
-        EventType_ = ZTTHADHAD;
-    }
-    else if(strcmp(&genVName_, "W") == 0){
-      if(nLepton_ >= 1)
-        EventType_ = WLNU;
-      else if(TauLepDecay_ >= 1)
-        EventType_ = WTAULEP;
-      else if(TauLepDecay_ == 0 && genTauVisP4_.size() >= 1 )
-        EventType_ = WTAUHAD;
-    }
-    */
+    //Classify event, HADHAD, LEPHAD, LEPLEP, LL, LNU, LEPNU, TAUNU, OTHERS
+    int EventType_ = OTHERS;
+    if(nLepton_ >= 2 && TauLepDecay_ == 0 && TauHadDecay_<=1) 
+      EventType_ = LL;
+    else if (nLepton_ >= 1 && TauLepDecay_ == 0 && TauHadDecay_<=1)
+      EventType_ = LNU;
+    else if(TauLepDecay_ >= 2 && TauLepDecay_ == nLepton_ && TauHadDecay_<=1)
+      EventType_ = LEPLEP;
+    else if(TauLepDecay_ == 1 && TauLepDecay_ == nLepton_ && TauHadDecay_ == 0)
+      EventType_ = LEPNU;
+    else if(TauLepDecay_ == 1 && TauHadDecay_ >= 1 )
+      EventType_ = LEPHAD;
+    else if(TauLepDecay_ == 0 && TauHadDecay_ >= 2 )
+      EventType_ = HADHAD;
+    else if(TauLepDecay_ == 0 && nLepton_ == 0 && TauHadDecay_ == 1)
+      EventType_ = TAUNU;
 
     //require HLT
     if(GetTriggerResult((*hltriggerresultsV), "HLT_DoubleMediumIsoPFTau40_Trk1_eta2p1_Reg_v") < 0.5) continue;
@@ -1663,6 +1758,23 @@ void fillTrees_TauTauStream(TChain* currentTree,
       }
       HLTmatchL1 = matchLeg1Level3_; //(matchLeg1Level1_ && matchLeg1Level2_ && matchLeg1Level3_);
       HLTmatchL2 = matchLeg2Level3_; //(matchLeg2Level1_ && matchLeg2Level2_ && matchLeg2Level3_);
+
+
+      //Define MC DY event type (used to split DY events)
+      isZtt_=false; isZll_=false; isZj_=false;
+      if(sample_.find("DYJets") != std::string::npos){
+	//std::cout<<"sample "<<sample_<<" type "<<EventType_<<std::endl;
+	if(EventType_ == HADHAD)isZtt_ = true;
+	else if(nLepton_ >= 1 || TauLepDecay_ >= 1){
+	  bool matchl1gen_ = false, matchl2gen_ = false;
+	  for(size_t l = 0; l < genLeptonP4_.size(); l++){
+	    if(deltaR(Leg1P4_, genLeptonP4_[l]) < 0.5)matchl1gen_ = true;
+	    if(deltaR(Leg2P4_, genLeptonP4_[l]) < 0.5)matchl2gen_ = true;
+	  }
+	  if(matchl1gen_ && matchl2gen_) isZll_ = true;
+	}
+	if(!isZtt_ && !isZll_)isZj_ = true;
+      }
 
       pairIndex = -1;
       if(HLTx && HLTmatchL1 && HLTmatchL2){

@@ -8,21 +8,26 @@ import subprocess
 
 #WorkdirLoc = '/nfs/dust/cms/user/anayak/CMS/Ntuple_HttAnalysis/Sync2015/'
 #WorkdirLoc = '/nfs/dust/cms/user/rasp/ntuples/'
-WorkdirLoc = '/nfs/dust/cms/group/susy-desy/Run2/MC/Stau/MC_Spring15_25ns_v1/'
-OutDir     = '/nfs/dust/cms/user/anayak/CMS/Ntuple_HttAnalysis/ntuples74/'
+#WorkdirLoc = '/nfs/dust/cms/group/susy-desy/Run2/MC/Stau/MC_Spring15_25ns_v1/'
+#OutDir     = '/nfs/dust/cms/user/anayak/CMS/Ntuple_HttAnalysis/ntuples74/'
+WorkdirData = '/nfs/dust/cms/group/susy-desy/Run2/Stau/Data/50ns/v2/'
+WorkdirLoc = '/nfs/dust/cms/group/susy-desy/Run2/MC/Stau/MC_Spring15_50ns_v1/'
+OutDir     = '/nfs/dust/cms/user/anayak/CMS/Ntuple_HttAnalysis/ntuples74_50ns/'    
 
 options = {
-        ###mu+tau samples
+    ###tau+tau samples
 
-     ##DATA
-#    'Run2012A-22Jan2013-Data' : {
-#    'inputFilePath'  : WorkdirLoc+'Data/Data_2012A_ReReco22Jan_HTT_25July2013_Trees_MuTau_v1/',
-#    'outputFileName' : OutDir+'nTupleRun2012A-22Jan2013-Data.root',
-#    'sample'         : 'Run2012A-22Jan2013-Data',
-#    'xSection'       : 0,
-#    'skimEff'        : 0,
-#    'iJson'          : 7
-#    },
+    ##DATA
+    'Run2015B-Data_TauTau' : {
+    'inputFilePath'  : WorkdirData+'Tau/',
+    'outputFileName' : OutDir+'nTupleRun2015B-Data.root',
+    'sample'         : 'Run2015B-Data',
+    'xSection'       : 0,
+    'skimEff'        : 0,
+    'iJson'          : 0,
+    'iDiv'           : 0,
+    'nDiv'           : 1
+    },
     ##Bkg MC
     'DYJets_TauTau' : {
     'inputFilePath'  : WorkdirLoc+'DYJetsToLL_M-50/',
@@ -35,17 +40,19 @@ options = {
     'nDiv'           : 1
     },
     'WJetsToLNu' : {
-    'inputFilePath'  : WorkdirLoc+'WJetsToLNu/',
+    #'inputFilePath'  : WorkdirLoc+'WJetsToLNu/',
+    'inputFilePath'  : WorkdirLoc+'WJets/',    
     'outputFileName' : OutDir+'nTupleWJets_TauTau.root',
     'sample'         : 'WJets_TauTau',
-    'xSection'       : 20509,
+    'xSection'       : 61526.7,
     'skimEff'        : 1.0,
     'iJson'          : -1,
     'iDiv'           : 0,
     'nDiv'           : 1
     },
     'TTJets' : {
-    'inputFilePath'  : WorkdirLoc+'TTJets_amatnlo/',
+    #'inputFilePath'  : WorkdirLoc+'TTJets_amatnlo/',
+    'inputFilePath'  : WorkdirLoc+'TTJets/',
     'outputFileName' : OutDir+'nTupleTTJets_TauTau.root',
     'sample'         : 'TTJets_TauTau',
     'xSection'       : 831.76,
@@ -64,16 +71,16 @@ options = {
     'iDiv'           : 0,
     'nDiv'           : 1
     },
-    'SingleAntiTop_t' : {
-    'inputFilePath'  : WorkdirLoc+'ST_t-channel_antitop/',
-    'outputFileName' : OutDir+'nTupleSAntiTopT_TauTau.root',
-    'sample'         : 'SAntiTopT_TauTau',
-    'xSection'       : 80.97*0.108*3,
-    'skimEff'        : 1.0,
-    'iJson'          : -1,
-    'iDiv'           : 0,
-    'nDiv'           : 1
-    },
+    #'SingleAntiTop_t' : {
+    #'inputFilePath'  : WorkdirLoc+'ST_t-channel_antitop/',
+    #'outputFileName' : OutDir+'nTupleSAntiTopT_TauTau.root',
+    #'sample'         : 'SAntiTopT_TauTau',
+    #'xSection'       : 80.97*0.108*3,
+    #'skimEff'        : 1.0,
+    #'iJson'          : -1,
+    #'iDiv'           : 0,
+    #'nDiv'           : 1
+    #},
     'SingleTop_tW' : {
     'inputFilePath'  : WorkdirLoc+'ST_tW_top/',
     'outputFileName' : OutDir+'nTupleSTopTW_TauTau.root',
@@ -94,66 +101,66 @@ options = {
     'iDiv'           : 0,
     'nDiv'           : 1
     },
-    'WWTo2L2Nu' : {
-    'inputFilePath'  : WorkdirLoc+'WWTo2L2Nu/',
-    'outputFileName' : OutDir+'nTupleWWTo2L2Nu_TauTau.root',
-    'sample'         : 'WWTo2L2Nu_TauTau',
-    'xSection'       : 10.481,
-    'skimEff'        : 1.0,
-    'iJson'          : -1,
-    'iDiv'           : 0,
-    'nDiv'           : 1
-    },
-    'WWTo4Q' : {
-    'inputFilePath'  : WorkdirLoc+'WWTo4Q/',
-    'outputFileName' : OutDir+'nTupleWWTo4Q_TauTau.root',
-    'sample'         : 'WWTo4Q_TauTau',
-    'xSection'       : 45.20,
-    'skimEff'        : 1.0,
-    'iJson'          : -1,
-    'iDiv'           : 0,
-    'nDiv'           : 1
-    },
-    'WWToLNuQQ' : {
-    'inputFilePath'  : WorkdirLoc+'WWToLNuQQ/',
-    'outputFileName' : OutDir+'nTupleWWToLNuQQ_TauTau.root',
-    'sample'         : 'WWToLNuQQ_TauTau',
-    'xSection'       : 43.53,
-    'skimEff'        : 1.0,
-    'iJson'          : -1,
-    'iDiv'           : 0,
-    'nDiv'           : 1
-    },
-    'WZTo1L1Nu2Q' : {
-    'inputFilePath'  : WorkdirLoc+'WZTo1L1Nu2Q/',
-    'outputFileName' : OutDir+'nTupleWZTo1L1Nu2Q_TauTau.root',
-    'sample'         : 'WZTo1L1Nu2Q_TauTau',
-    'xSection'       : 10.96,
-    'skimEff'        : 1.0,
-    'iJson'          : -1,
-    'iDiv'           : 0,
-    'nDiv'           : 1
-    },
-    'WZTo3LNu' : {
-    'inputFilePath'  : WorkdirLoc+'WZTo3LNu/',
-    'outputFileName' : OutDir+'nTupleWZTo3LNu_TauTau.root',
-    'sample'         : 'WZTo3LNu_TauTau',
-    'xSection'       : 4.42965,
-    'skimEff'        : 1.0,
-    'iJson'          : -1,
-    'iDiv'           : 0,
-    'nDiv'           : 1
-    },
-    'ZZ' : {
-    'inputFilePath'  : WorkdirLoc+'ZZ/',
-    'outputFileName' : OutDir+'nTupleZZ_TauTau.root',
-    'sample'         : 'ZZ_TauTau',
-    'xSection'       : 10.32,
-    'skimEff'        : 1.0,
-    'iJson'          : -1,
-    'iDiv'           : 0,
-    'nDiv'           : 1
-    },
+    #'WWTo2L2Nu' : {
+    #'inputFilePath'  : WorkdirLoc+'WWTo2L2Nu/',
+    #'outputFileName' : OutDir+'nTupleWWTo2L2Nu_TauTau.root',
+    #'sample'         : 'WWTo2L2Nu_TauTau',
+    #'xSection'       : 10.481,
+    #'skimEff'        : 1.0,
+    #'iJson'          : -1,
+    #'iDiv'           : 0,
+    #'nDiv'           : 1
+    #},
+    #'WWTo4Q' : {
+    #'inputFilePath'  : WorkdirLoc+'WWTo4Q/',
+    #'outputFileName' : OutDir+'nTupleWWTo4Q_TauTau.root',
+    #'sample'         : 'WWTo4Q_TauTau',
+    #'xSection'       : 45.20,
+    #'skimEff'        : 1.0,
+    #'iJson'          : -1,
+    #'iDiv'           : 0,
+    #'nDiv'           : 1
+    #},
+    #'WWToLNuQQ' : {
+    #'inputFilePath'  : WorkdirLoc+'WWToLNuQQ/',
+    #'outputFileName' : OutDir+'nTupleWWToLNuQQ_TauTau.root',
+    #'sample'         : 'WWToLNuQQ_TauTau',
+    #'xSection'       : 43.53,
+    #'skimEff'        : 1.0,
+    #'iJson'          : -1,
+    #'iDiv'           : 0,
+    #'nDiv'           : 1
+    #},
+    #'WZTo1L1Nu2Q' : {
+    #'inputFilePath'  : WorkdirLoc+'WZTo1L1Nu2Q/',
+    #'outputFileName' : OutDir+'nTupleWZTo1L1Nu2Q_TauTau.root',
+    #'sample'         : 'WZTo1L1Nu2Q_TauTau',
+    #'xSection'       : 10.96,
+    #'skimEff'        : 1.0,
+    #'iJson'          : -1,
+    #'iDiv'           : 0,
+    #'nDiv'           : 1
+    #},
+    #'WZTo3LNu' : {
+    #'inputFilePath'  : WorkdirLoc+'WZTo3LNu/',
+    #'outputFileName' : OutDir+'nTupleWZTo3LNu_TauTau.root',
+    #'sample'         : 'WZTo3LNu_TauTau',
+    #'xSection'       : 4.42965,
+    #'skimEff'        : 1.0,
+    #'iJson'          : -1,
+    #'iDiv'           : 0,
+    #'nDiv'           : 1
+    #},
+    #'ZZ' : {
+    #'inputFilePath'  : WorkdirLoc+'ZZ/',
+    #'outputFileName' : OutDir+'nTupleZZ_TauTau.root',
+    #'sample'         : 'ZZ_TauTau',
+    #'xSection'       : 10.32,
+    #'skimEff'        : 1.0,
+    #'iJson'          : -1,
+    #'iDiv'           : 0,
+    #'nDiv'           : 1
+    #},
 #    ##Higgs MC
 #    'GGFH125' : {
 #    'inputFilePath'  : WorkdirLoc+'HiggsSM/GluGluToHToTauTau_M-125_MC_TauTau_v2',
@@ -188,16 +195,16 @@ options = {
 #    'iDiv'           : 0,
 #    'nDiv'           : 1
 #    },
-    'SUSYBBH160' : {
-    'inputFilePath'  : WorkdirLoc+'SUSYGluGluToBBHToTauTau_M-160/',
-    'outputFileName' : OutDir+'nTupleSUSYBBH160_TauTau.root',
-    'sample'         : 'SUSYGGH160',
-    'xSection'       : 1.0,
-    'skimEff'        : 1.0,
-    'iJson'          : -1,
-    'iDiv'           : 0,
-    'nDiv'           : 1
-    },
+#    'SUSYBBH160' : {
+#    'inputFilePath'  : WorkdirLoc+'SUSYGluGluToBBHToTauTau_M-160/',
+#    'outputFileName' : OutDir+'nTupleSUSYBBH160_TauTau.root',
+#    'sample'         : 'SUSYGGH160',
+#    'xSection'       : 1.0,
+#    'skimEff'        : 1.0,
+#    'iJson'          : -1,
+#    'iDiv'           : 0,
+#    'nDiv'           : 1
+#    },
 }
 
 config_template = string.Template('''
