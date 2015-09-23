@@ -29,7 +29,7 @@
 #include "DesyTauAnalyses/NTupleMaker/interface/json.h"
 
 #include "DesyTauAnalyses/NTupleMaker/interface/RunLumiReader.h"
-
+#include "TGraphAsymmErrors.h"
 
 const float MuMass = 0.105658367;
 
@@ -299,6 +299,9 @@ int main(int argc, char * argv[]) {
   // Data
   const bool isData = cfg.get<bool>("IsData");
   const bool applyGoodRunSelection = cfg.get<bool>("ApplyGoodRunSelection"); 
+  const bool applyPUreweighting = cfg.get<bool>("ApplyPUreweighting");
+  const bool applyLeptonSF = cfg.get<bool>("ApplyLeptonSF");
+  const bool applyTrigWeight = cfg.get<bool>("ApplyTrigWeight");
 
   // kinematic cuts on electrons
   const float ptElectronLowCut   = cfg.get<float>("ptElectronLowCut");
@@ -328,7 +331,7 @@ int main(int argc, char * argv[]) {
   const bool oppositeSign    = cfg.get<bool>("oppositeSign");
   const float DRTrigMatch    = cfg.get<float>("DRTrigMatch");
   const float MEtCutTTJets   = cfg.get<float>("MEtCutTTJets");
-  const float DzetaCutTTJets = cfg.get<float>("DzetaCutTTJets");
+  const float DzetaCutTTJets = cfg.get<float>("dZetaCutTTJets");
   const bool isoDR03         = cfg.get<bool>("IsoDR03");
 
   // trigger
@@ -373,6 +376,42 @@ int main(int argc, char * argv[]) {
   const float ndofVertexCut  = cfg.get<float>("NdofVertexCut");   
   const float zVertexCut     = cfg.get<float>("ZVertexCut");
   const float dVertexCut     = cfg.get<float>("DVertexCut");
+
+  // vertex distributions filenames and histname                                                                                                                                
+  const string vertDataFileName = cfg.get<string>("VertexDataFileName");
+  const string vertMcFileName   = cfg.get<string>("VertexMcFileName");
+  const string vertHistName     = cfg.get<string>("VertexHistName");
+
+  // lepton scale factors                                                                                                                                                       
+  const string muonSfDataBarrel = cfg.get<string>("MuonSfDataBarrel");
+  const string muonSfDataEndcap = cfg.get<string>("MuonSfDataEndcap");
+  const string muonSfMcBarrel = cfg.get<string>("MuonSfMcBarrel");
+  const string muonSfMcEndcap = cfg.get<string>("MuonSfMcEndcap");
+
+  const string eleSfDataBarrel = cfg.get<string>("EleSfDataBarrel");
+  const string eleSfDataEndcap = cfg.get<string>("EleSfDataEndcap");
+  const string eleSfMcBarrel = cfg.get<string>("EleSfMcBarrel");
+  const string eleSfMcEndcap = cfg.get<string>("EleSfMcEndcap");
+
+  const float legMu23BarrelData = cfg.get<float>("LegMu23BarrelData");
+  const float legMu8BarrelData = cfg.get<float>("LegMu8BarrelData");
+  const float legMu23EndcapData = cfg.get<float>("LegMu23EndcapData");
+  const float legMu8EndcapData = cfg.get<float>("LegMu8EndcapData");
+
+  const float legMu23BarrelMC = cfg.get<float>("LegMu23BarrelMC");
+  const float legMu8BarrelMC = cfg.get<float>("LegMu8BarrelMC");
+  const float legMu23EndcapMC = cfg.get<float>("LegMu23EndcapMC");
+  const float legMu8EndcapMC = cfg.get<float>("LegMu8EndcapMC");
+
+  const float legEle23BarrelData = cfg.get<float>("LegEle23BarrelData");
+  const float legEle12BarrelData = cfg.get<float>("LegEle12BarrelData");
+  const float legEle23EndcapData = cfg.get<float>("LegEle23EndcapData");
+  const float legEle12EndcapData = cfg.get<float>("LegEle12EndcapData");
+
+  const float legEle23BarrelMC = cfg.get<float>("LegEle23BarrelMC");
+  const float legEle12BarrelMC = cfg.get<float>("LegEle12BarrelMC");
+  const float legEle23EndcapMC = cfg.get<float>("LegEle23EndcapMC");
+  const float legEle12EndcapMC = cfg.get<float>("LegEle12EndcapMC");
 
 
   // **** end of configuration
@@ -571,6 +610,69 @@ int main(int argc, char * argv[]) {
   eventTree->Branch("Run",&iRun,"Run/i");
   eventTree->Branch("Event",&iEvent,"Event/i");
 
+  string cmsswBase = (getenv ("CMSSW_BASE"));
+
+  // reading vertex weights                                                                                                                                                     
+  TFile * fileDataNVert = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+vertDataFileName);
+  TFile * fileMcNVert   = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+vertMcFileName);
+
+  TH1F * vertexDataH = (TH1F*)fileDataNVert->Get(TString(vertHistName));
+  TH1F * vertexMcH   = (TH1F*)fileMcNVert->Get(TString(vertHistName));
+
+  float normVertexData = vertexDataH->GetSumOfWeights();
+  float normVertexMc   = vertexMcH->GetSumOfWeights();
+
+  vertexDataH->Scale(1/normVertexData);
+  vertexMcH->Scale(1/normVertexMc);
+
+  // muon scale factors
+  TFile *fmuDataBarrel = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+muonSfDataBarrel); // mu SF barrel data
+  TFile *fmuDataEndcap = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+muonSfDataEndcap); // mu SF endcap data
+  TFile *fmuMcBarrel   = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+muonSfMcBarrel);   // mu SF barrel MC
+  TFile *fmuMcEndcap   = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+muonSfMcEndcap);   // mu SF endcap MC
+
+  TGraphAsymmErrors *muEffBarrelData = (TGraphAsymmErrors*)fmuDataBarrel->Get("ZMassBarrel");
+  TGraphAsymmErrors *muEffEndcapData = (TGraphAsymmErrors*)fmuDataEndcap->Get("ZMassEndcap");
+  TGraphAsymmErrors *muEffBarrelMC   = (TGraphAsymmErrors*)fmuMcBarrel->Get("ZMassBarrel");
+  TGraphAsymmErrors *muEffEndcapMC   = (TGraphAsymmErrors*)fmuMcEndcap->Get("ZMassEndcap");
+
+  double * dataMuEffBarrel = new double[10];
+  double * dataMuEffEndcap = new double[10];
+  double * mcMuEffBarrel = new double[10];
+  double * mcMuEffEndcap = new double[10];
+
+  dataMuEffBarrel = muEffBarrelData->GetY();
+  dataMuEffEndcap = muEffEndcapData->GetY();
+  mcMuEffBarrel = muEffBarrelMC->GetY();
+  mcMuEffEndcap = muEffEndcapMC->GetY();
+
+  // electron scale factors
+  TFile *feleDataBarrel = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+eleSfDataBarrel); // ele SF barrel data
+  TFile *feleDataEndcap = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+eleSfDataEndcap); // ele SF endcap data
+  TFile *feleMcBarrel   = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+eleSfMcBarrel);   // ele SF barrel MC
+  TFile *feleMcEndcap   = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+eleSfMcEndcap);   // ele SF endcap MC
+
+  TGraphAsymmErrors *eleEffBarrelData = (TGraphAsymmErrors*)feleDataBarrel->Get("ZMassBarrel");
+  TGraphAsymmErrors *eleEffEndcapData = (TGraphAsymmErrors*)feleDataEndcap->Get("ZMassEndcap");
+  TGraphAsymmErrors *eleEffBarrelMC   = (TGraphAsymmErrors*)feleMcBarrel->Get("ZMassBarrel");
+  TGraphAsymmErrors *eleEffEndcapMC   = (TGraphAsymmErrors*)feleMcEndcap->Get("ZMassEndcap");
+
+  double * dataEleEffBarrel = new double[10];
+  double * dataEleEffEndcap = new double[10];
+  double * mcEleEffBarrel = new double[10];
+  double * mcEleEffEndcap = new double[10];
+
+  dataEleEffBarrel = eleEffBarrelData->GetY();
+  dataEleEffEndcap = eleEffEndcapData->GetY();
+  mcEleEffBarrel = eleEffBarrelMC->GetY();
+  mcEleEffEndcap = eleEffEndcapMC->GetY();
+
+  int nPtMuBins = 6;
+  float ptMuBins[7] = {10,15,20,30,40,60,1000};
+
+  int nPtEleBins = 7;
+  float ptEleBins[8] = {10,15,20,25,30,40,60,1000};
+  
 
   int nFiles = 0;
   int nEvents = 0;
@@ -885,6 +987,17 @@ int main(int argc, char * argv[]) {
 
       weightsH->Fill(0.0,weight);
 
+      if (!isData && applyPUreweighting) {
+	int binNvert = vertexDataH->FindBin(analysisTree.primvertex_count);
+	float_t dataNvert = vertexDataH->GetBinContent(binNvert);
+	float_t mcNvert = vertexMcH->GetBinContent(binNvert);
+	if (mcNvert < 1e-10){mcNvert=1e-10;}
+	float_t vertWeight = dataNvert/mcNvert;
+	//	cout << "Vertex weight = " << vertWeight << endl;
+	weight *= vertWeight;
+      }
+
+
       // triggers
       bool isTriggerMuon = false;
       bool isTriggerElectron = false;
@@ -993,12 +1106,12 @@ int main(int argc, char * argv[]) {
 	}
        }
       if (!isElectronHLTFilter) {
-	std::cout << "HLT filter " << ElectronHLTFilterName << " not found" << std::endl;
-	exit(-1);
+	//	std::cout << "HLT filter " << ElectronHLTFilterName << " not found" << std::endl;
+	//	exit(-1);
       }
       if (!isMuonHLTFilter) {
-	std::cout << "HLT filter " << MuonHLTFilterName << " not found" << std::endl;
-	exit(-1);
+	//	std::cout << "HLT filter " << MuonHLTFilterName << " not found" << std::endl;
+	//	exit(-1);
       }
       if (!isMu23Ele12MuonFilter) {
 	std::cout << "HLT filter " << Mu23Ele12MuonFilterName << " not found" << std::endl; 
@@ -1216,6 +1329,7 @@ int main(int argc, char * argv[]) {
       tree->Fill();
 
 
+
       // computation of kinematic variables
 
       TLorentzVector muonLV; muonLV.SetXYZM(analysisTree.muon_px[muonIndex],
@@ -1232,6 +1346,69 @@ int main(int argc, char * argv[]) {
       float dileptonMass = dileptonLV.M();
       float dileptonPt = dileptonLV.Pt();
       float dileptonEta = dileptonLV.Eta();
+
+      if (!isData) {
+	float absEtaMu = fabs(float(muonLV.Eta()));
+	if (absEtaMu>2.4) absEtaMu = 2.39; 
+	float absEtaEle = fabs(float(electronLV.Eta()));
+	if (absEtaEle>2.5) absEtaEle = 2.49;
+	if (applyLeptonSF) {
+	  float ptMu = TMath::Max(float(11),float(TMath::Min(float(59),float(muonLV.Pt()))));
+	  float ptEle = TMath::Max(float(11),float(TMath::Min(float(59),float(electronLV.Pt()))));
+	  int ptBinMu  = binNumber(ptMu,nPtMuBins,ptMuBins);
+	  int ptBinEle = binNumber(ptEle,nPtEleBins,ptEleBins);
+	  float dataMu = 1;
+	  float mcMu = 1;
+	  float dataEle = 1;
+	  float mcEle = 1;
+	  if(absEtaMu < 1.48){
+	    dataMu = dataMuEffBarrel[ptBinMu];
+	    mcMu = mcMuEffBarrel[ptBinMu];
+	  }
+	  else {
+	    dataMu = dataMuEffEndcap[ptBinMu];
+	    mcMu = mcMuEffEndcap[ptBinMu];
+	  }
+	  if(absEtaEle < 1.48){
+	    dataEle = dataEleEffBarrel[ptBinEle];
+	    mcEle = mcEleEffBarrel[ptBinEle];
+	  }
+	  else {
+	    dataEle = dataEleEffEndcap[ptBinEle];
+	    mcEle = mcEleEffEndcap[ptBinEle];
+	  }
+	  float wMu  = dataMu/mcMu;
+	  float wEle = dataEle/mcEle;
+	  //	  cout << "Leptons SF : Mu = " << wMu << "   Ele = " << wEle << "    total = " << wMu*wEle << endl;                                                             
+	  weight = weight*wMu*wEle;
+	}
+	if (applyTrigWeight) {
+	  float mu23data = legMu23BarrelData;
+	  float mu23mc = legMu23BarrelMC;
+	  float mu8data = legMu8BarrelData;
+	  float mu8mc = legMu8BarrelMC;
+	  if (absEtaMu>1.48) { 
+	    mu23data = legMu23EndcapData;
+	    mu23mc = legMu23EndcapMC;
+	    mu8data = legMu8EndcapData;
+	    mu8mc = legMu23EndcapMC;
+	  }
+	  float ele23data = legEle23BarrelData;
+	  float ele23mc = legEle23BarrelMC;
+	  float ele12data = legEle12BarrelData;
+	  float ele12mc = legEle12BarrelMC;
+	  if (absEtaEle>1.48) { 
+	    ele23data = legEle23EndcapData;
+	    ele23mc = legEle23EndcapMC;
+	    ele12data = legEle12EndcapData;
+	    ele12mc = legEle23EndcapMC;
+	  }
+	  float trigData = mu23data*ele12data + mu8data*ele23data - mu23data*ele23data;
+	  float trigMC = mu23mc*ele12mc + mu8mc*ele23mc - mu23mc*ele23mc;
+	  weight = weight*trigData/trigMC;
+	  //	  cout << "Trig weight = " << trigData/trigMC << endl;
+	}
+      }
 
       float ETmiss = TMath::Sqrt(analysisTree.pfmet_ex*analysisTree.pfmet_ex + analysisTree.pfmet_ey*analysisTree.pfmet_ey);
 
