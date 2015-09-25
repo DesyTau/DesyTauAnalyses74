@@ -413,6 +413,9 @@ int main(int argc, char * argv[]) {
   const float legEle23EndcapMC = cfg.get<float>("LegEle23EndcapMC");
   const float legEle12EndcapMC = cfg.get<float>("LegEle12EndcapMC");
 
+  const float muMomentumSF = cfg.get<float>("MuonMomentumSF");
+  const float eleMomentumSF = cfg.get<float>("ElectronMomentumSF");
+
 
   // **** end of configuration
 
@@ -570,7 +573,6 @@ int main(int argc, char * argv[]) {
   TH1F * ptEle12TTJetsPassH = new TH1F("ptEle12TTJetsPassH","",200,0,200);
   TH1F * ptEle12TTJetsFailH = new TH1F("ptEle12TTJetsFailH","",200,0,200);
 
-
   TH1F * ptMu23TTJetsBarrelPassH = new TH1F("ptMu23TTJetsBarrelPassH","",200,0,200);
   TH1F * ptMu23TTJetsBarrelFailH = new TH1F("ptMu23TTJetsBarrelFailH","",200,0,200);
 
@@ -596,7 +598,55 @@ int main(int argc, char * argv[]) {
   TH1F * ptEle12TTJetsEndcapPassH = new TH1F("ptEle12TTJetsEndcapPassH","",200,0,200);
   TH1F * ptEle12TTJetsEndcapFailH = new TH1F("ptEle12TTJetsEndcapFailH","",200,0,200);
 
+  int nPtMuBins = 5;
+  float ptMuBins[6] = {10,15,20,30,40,60};
 
+  int nPtEleBins = 6;
+  float ptEleBins[7] = {10,15,20,25,30,40,60};
+
+  TString PtEleBins[6] = {"Pt10to15",
+			  "Pt15to20",
+			  "Pt20to25",
+			  "Pt25to30",
+			  "Pt30to40",
+			  "Pt40to60"};
+  
+  TString PtMuBins[5] = {"Pt10to15",
+			 "Pt15to20",
+			 "Pt20to30",
+			 "Pt30to40",
+			 "Pt40to60"};
+
+  int nEtaBins = 2;
+  float etaBins[3] = {0,1.48,2.5}; 
+
+  TString EtaBins[2] = {"Barrel",
+			"Endcap"};
+
+  int nDownUp = 2;
+
+  TString DownUp[2] = {"Down",
+		       "Up"};
+
+  TH1F * dileptonMassMuEffH[2][2][5];
+  TH1F * dileptonMassEleEffH[2][2][6];
+
+  TH1F * dileptonMassSelMuEffH[2][2][5];
+  TH1F * dileptonMassSelEleEffH[2][2][6];
+
+  for (int iUD=0; iUD<nDownUp; ++iUD) {
+    for (int iEta=0; iEta<nEtaBins; ++iEta) {
+      for (int iPt=0; iPt<nPtMuBins; ++iPt) {
+	dileptonMassMuEffH[iUD][iEta][iPt] = new TH1F("dileptonMassMuEff"+EtaBins[iEta]+PtMuBins[iPt]+DownUp[iUD]+"H","",40,0,200); 
+	dileptonMassSelMuEffH[iUD][iEta][iPt] = new TH1F("dileptonMassSelMuEff"+EtaBins[iEta]+PtMuBins[iPt]+DownUp[iUD]+"H","",40,0,200); 
+      }
+      for (int iPt=0; iPt<nPtEleBins; ++iPt) {
+	dileptonMassEleEffH[iUD][iEta][iPt] = new TH1F("dileptonMassEleEff"+EtaBins[iEta]+PtEleBins[iPt]+DownUp[iUD]+"H","",40,0,200); 
+	dileptonMassSelEleEffH[iUD][iEta][iPt] = new TH1F("dileptonMassSelEleEff"+EtaBins[iEta]+PtEleBins[iPt]+DownUp[iUD]+"H","",40,0,200); 
+      }
+    }
+  }
+    
   TH1F * DYJetsDiLeptonH = new TH1F("DYJetsDiLeptonH","",1,-0.5,0.5);
   TH1F * DYJetsDiLeptonElePtH = new TH1F("DYJetsDiLeptonElePtH","",1000,0,1000);
   TH1F * DYJetsDiLeptonMuPtH = new TH1F("DYJetsDiLeptonMuPtH","",1000,0,1000);
@@ -638,13 +688,24 @@ int main(int argc, char * argv[]) {
 
   double * dataMuEffBarrel = new double[10];
   double * dataMuEffEndcap = new double[10];
+  double * dataMuEffErrBarrel = new double[10];
+  double * dataMuEffErrEndcap = new double[10];
   double * mcMuEffBarrel = new double[10];
   double * mcMuEffEndcap = new double[10];
 
+
   dataMuEffBarrel = muEffBarrelData->GetY();
   dataMuEffEndcap = muEffEndcapData->GetY();
+  dataMuEffErrBarrel = muEffBarrelData->GetEYlow();
+  dataMuEffErrEndcap = muEffEndcapData->GetEYlow();
   mcMuEffBarrel = muEffBarrelMC->GetY();
   mcMuEffEndcap = muEffEndcapMC->GetY();
+
+  for (int iPt=0; iPt<nPtMuBins; ++iPt) {
+    cout << "Eff(Mu) Barrel " << PtMuBins[iPt] << " = " << dataMuEffBarrel[iPt] << "+/-" << dataMuEffErrBarrel[iPt] << endl;
+    cout << "Eff(Mu) Endcap " << PtMuBins[iPt] << " = " << dataMuEffEndcap[iPt] << "+/-" << dataMuEffErrEndcap[iPt] << endl;
+  }
+
 
   // electron scale factors
   TFile *feleDataBarrel = new TFile(TString(cmsswBase)+"/src/DesyTauAnalyses/NTupleMaker/data/"+eleSfDataBarrel); // ele SF barrel data
@@ -659,20 +720,25 @@ int main(int argc, char * argv[]) {
 
   double * dataEleEffBarrel = new double[10];
   double * dataEleEffEndcap = new double[10];
+
+  double * dataEleEffErrBarrel = new double[10];
+  double * dataEleEffErrEndcap = new double[10];
+
   double * mcEleEffBarrel = new double[10];
   double * mcEleEffEndcap = new double[10];
 
   dataEleEffBarrel = eleEffBarrelData->GetY();
   dataEleEffEndcap = eleEffEndcapData->GetY();
+  dataEleEffErrBarrel = eleEffBarrelData->GetEYlow();
+  dataEleEffErrEndcap = eleEffEndcapData->GetEYlow();
   mcEleEffBarrel = eleEffBarrelMC->GetY();
   mcEleEffEndcap = eleEffEndcapMC->GetY();
 
-  int nPtMuBins = 6;
-  float ptMuBins[7] = {10,15,20,30,40,60,1000};
+  for (int iPt=0; iPt<nPtEleBins; ++iPt) {
+    cout << "Eff(Ele) Barrel " << PtEleBins[iPt] << " = " << dataEleEffBarrel[iPt] << "+/-" << dataEleEffErrBarrel[iPt] << endl;
+    cout << "Eff(Ele) Endcap " << PtEleBins[iPt] << " = " << dataEleEffEndcap[iPt] << "+/-" << dataEleEffErrEndcap[iPt] << endl;
+  }
 
-  int nPtEleBins = 7;
-  float ptEleBins[8] = {10,15,20,25,30,40,60,1000};
-  
 
   int nFiles = 0;
   int nEvents = 0;
@@ -1139,6 +1205,12 @@ int main(int argc, char * argv[]) {
 
       vector<int> electrons; electrons.clear();
       for (unsigned int ie = 0; ie<analysisTree.electron_count; ++ie) {
+	if (!isData) {
+	  analysisTree.electron_pt[ie] *= eleMomentumSF;
+	  analysisTree.electron_px[ie] *= eleMomentumSF;
+	  analysisTree.electron_py[ie] *= eleMomentumSF;
+	  analysisTree.electron_pz[ie] *= eleMomentumSF;
+	}
 	electronPtAllH->Fill(analysisTree.electron_pt[ie],weight);
 	if (analysisTree.electron_pt[ie]<ptElectronLowCut) continue;
 	if (fabs(analysisTree.electron_eta[ie])>etaElectronLowCut) continue;
@@ -1176,6 +1248,12 @@ int main(int argc, char * argv[]) {
 
       vector<int> muons; muons.clear();
       for (unsigned int im = 0; im<analysisTree.muon_count; ++im) {
+	if (!isData) {
+	  analysisTree.muon_pt[im] *= muMomentumSF;
+	  analysisTree.muon_px[im] *= muMomentumSF;
+	  analysisTree.muon_py[im] *= muMomentumSF;
+	  analysisTree.muon_pz[im] *= muMomentumSF;
+	}
 	muonPtAllH->Fill(analysisTree.muon_pt[im],weight);
 	if (analysisTree.muon_pt[im]<ptMuonLowCut) continue;
 	if (fabs(analysisTree.muon_eta[im])>etaMuonLowCut) continue;
@@ -1210,7 +1288,6 @@ int main(int argc, char * argv[]) {
 
       if (electrons.size()==0) continue;
       if (muons.size()==0) continue;
-
  
       weightsEMuH->Fill(0.0,weight);
 
@@ -1347,6 +1424,13 @@ int main(int argc, char * argv[]) {
       float dileptonPt = dileptonLV.Pt();
       float dileptonEta = dileptonLV.Eta();
 
+      int ptBinMu = 0;
+      int ptBinEle = 0;
+      int etaBinMu = 0;
+      int etaBinEle = 0;
+      float errEffWeightMu = 0;
+      float errEffWeightEle = 0;
+
       if (!isData) {
 	float absEtaMu = fabs(float(muonLV.Eta()));
 	if (absEtaMu>2.4) absEtaMu = 2.39; 
@@ -1355,31 +1439,46 @@ int main(int argc, char * argv[]) {
 	if (applyLeptonSF) {
 	  float ptMu = TMath::Max(float(11),float(TMath::Min(float(59),float(muonLV.Pt()))));
 	  float ptEle = TMath::Max(float(11),float(TMath::Min(float(59),float(electronLV.Pt()))));
-	  int ptBinMu  = binNumber(ptMu,nPtMuBins,ptMuBins);
-	  int ptBinEle = binNumber(ptEle,nPtEleBins,ptEleBins);
+	  ptBinMu  = binNumber(ptMu,nPtMuBins,ptMuBins);
+	  ptBinEle = binNumber(ptEle,nPtEleBins,ptEleBins);
+
 	  float dataMu = 1;
+	  float dataErrMu = 0;
 	  float mcMu = 1;
+
 	  float dataEle = 1;
+	  float dataErrEle = 0;
 	  float mcEle = 1;
 	  if(absEtaMu < 1.48){
 	    dataMu = dataMuEffBarrel[ptBinMu];
+	    dataErrMu = dataMuEffErrBarrel[ptBinMu];
 	    mcMu = mcMuEffBarrel[ptBinMu];
+	    etaBinMu = 0;
 	  }
 	  else {
 	    dataMu = dataMuEffEndcap[ptBinMu];
+	    dataErrMu = dataMuEffErrEndcap[ptBinMu];
 	    mcMu = mcMuEffEndcap[ptBinMu];
+	    etaBinMu = 1;
 	  }
 	  if(absEtaEle < 1.48){
 	    dataEle = dataEleEffBarrel[ptBinEle];
+	    dataErrEle = dataEleEffErrBarrel[ptBinEle];
 	    mcEle = mcEleEffBarrel[ptBinEle];
+	    etaBinEle = 0;
 	  }
 	  else {
 	    dataEle = dataEleEffEndcap[ptBinEle];
+	    dataErrEle = dataEleEffErrEndcap[ptBinEle];
 	    mcEle = mcEleEffEndcap[ptBinEle];
+	    etaBinEle = 1;
 	  }
 	  float wMu  = dataMu/mcMu;
 	  float wEle = dataEle/mcEle;
-	  //	  cout << "Leptons SF : Mu = " << wMu << "   Ele = " << wEle << "    total = " << wMu*wEle << endl;                                                             
+	  errEffWeightMu = dataErrMu/dataMu;
+	  errEffWeightEle = dataErrEle/dataEle;
+	  //	  cout << "Leptons SF : Mu = " << wMu << "   Ele = " << wEle << "    total = " << wMu*wEle << endl;
+	  //	  cout << "             err(Mu) = " << errEffWeightMu << "    err(Ele) = " << errEffWeightEle << endl;
 	  weight = weight*wMu*wEle;
 	}
 	if (applyTrigWeight) {
@@ -1498,6 +1597,29 @@ int main(int argc, char * argv[]) {
       muonEtaH->Fill(muonLV.Eta(),weight);
       
       dileptonMassH->Fill(dileptonMass,weight);
+      for (int iEta=0; iEta<nEtaBins; ++iEta) {
+	for (int iPt=0; iPt<nPtMuBins; ++iPt) {
+	  if (iEta==etaBinMu&&iPt==ptBinMu) {
+	    dileptonMassMuEffH[0][iEta][iPt]->Fill(dileptonMass,weight*(1-errEffWeightMu));
+	    dileptonMassMuEffH[1][iEta][iPt]->Fill(dileptonMass,weight*(1+errEffWeightMu));
+	  }
+	  else {
+	    dileptonMassMuEffH[0][iEta][iPt]->Fill(dileptonMass,weight);
+            dileptonMassMuEffH[1][iEta][iPt]->Fill(dileptonMass,weight);
+	  }
+	}
+	for (int iPt=0; iPt<nPtEleBins; ++iPt) {
+	  if (iEta==etaBinEle&&iPt==ptBinEle) {
+	    dileptonMassEleEffH[0][iEta][iPt]->Fill(dileptonMass,weight*(1-errEffWeightEle));
+	    dileptonMassEleEffH[1][iEta][iPt]->Fill(dileptonMass,weight*(1+errEffWeightEle));
+	  }
+	  else {
+	    dileptonMassEleEffH[0][iEta][iPt]->Fill(dileptonMass,weight);
+            dileptonMassEleEffH[1][iEta][iPt]->Fill(dileptonMass,weight);
+	  }
+	}
+      }
+
       dileptonPtH->Fill(dileptonPt,weight);
       dileptonEtaH->Fill(dileptonEta,weight);
       dileptondRH->Fill(dRleptons,weight);
@@ -1573,6 +1695,29 @@ int main(int argc, char * argv[]) {
 	muonEtaSelH->Fill(muonLV.Eta(),weight);
 	
 	dileptonMassSelH->Fill(dileptonMass,weight);
+	for (int iEta=0; iEta<nEtaBins; ++iEta) {
+	  for (int iPt=0; iPt<nPtMuBins; ++iPt) {
+	    if (iEta==etaBinMu&&iPt==ptBinMu) {
+	      dileptonMassSelMuEffH[0][iEta][iPt]->Fill(dileptonMass,weight*(1-errEffWeightMu));
+	      dileptonMassSelMuEffH[1][iEta][iPt]->Fill(dileptonMass,weight*(1+errEffWeightMu));
+	    }
+	    else {
+	      dileptonMassSelMuEffH[0][iEta][iPt]->Fill(dileptonMass,weight);
+	      dileptonMassSelMuEffH[1][iEta][iPt]->Fill(dileptonMass,weight);
+	    }
+	  }
+	  for (int iPt=0; iPt<nPtEleBins; ++iPt) {
+	    if (iEta==etaBinEle&&iPt==ptBinEle) {
+	      dileptonMassSelEleEffH[0][iEta][iPt]->Fill(dileptonMass,weight*(1-errEffWeightEle));
+	      dileptonMassSelEleEffH[1][iEta][iPt]->Fill(dileptonMass,weight*(1+errEffWeightEle));
+	    }
+	    else {
+	      dileptonMassSelEleEffH[0][iEta][iPt]->Fill(dileptonMass,weight);
+	      dileptonMassSelEleEffH[1][iEta][iPt]->Fill(dileptonMass,weight);
+	    }
+	  }
+	}
+
 	dileptonPtSelH->Fill(dileptonPt,weight);
 	dileptonEtaSelH->Fill(dileptonEta,weight);
 	dileptondRSelH->Fill(dRleptons,weight);
