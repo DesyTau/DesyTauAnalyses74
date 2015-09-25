@@ -389,6 +389,17 @@ int main(int argc, char * argv[]) {
   TH1F * massSelH = new TH1F("massSelH","",200,0,200);
   TH1F * metSelH  = new TH1F("metSelH","",200,0,400);
 
+  TString scales[21] = {"M10","M9","M8","M7","M6","M5","M4","M3","M2","M1","0",
+			"P1","P2","P3","P4","P5","P6","P7","P8","P9","P10"};
+  
+  TH1F * massSelScaleH[21];
+  TH1F * metSelScaleH[21];
+  for (int iScale=0; iScale<21; ++iScale) {    
+    massSelScaleH[iScale] = new TH1F("massSel"+scales[iScale]+"H","",200,0,200);
+    metSelScaleH[iScale] = new TH1F("metSel"+scales[iScale]+"H","",200,0,400);
+  }
+
+
   TH1F * nJets30SelH    = new TH1F("nJets30SelH","",11,-0.5,10.5);
   TH1F * nJets30etaCutSelH = new TH1F("nJets30etaCutSelH","",11,-0.5,10.5);
   TH1F * nJets20SelH    = new TH1F("nJets20SelH","",11,-0.5,10.5);
@@ -1065,6 +1076,11 @@ int main(int argc, char * argv[]) {
 	float massSel = dimuon.M();
 
 	massSelH->Fill(massSel,weight);
+	for (int iScale=0; iScale<21; ++ iScale) {
+	  float scaleFactor = 0.98 + 0.002*float(iScale);
+	  massSelScaleH[iScale]->Fill(massSel*scaleFactor,weight);
+	}
+
 
 	if (massSel>20) {
 	  ptLeadingMuSelH->Fill(analysisTree.muon_pt[indx1],weight);
@@ -1160,6 +1176,11 @@ int main(int argc, char * argv[]) {
 	  NumberOfVerticesH->Fill(float(analysisTree.primvertex_count),weight);
 	  float metSel = sqrt(analysisTree.pfmet_ex*analysisTree.pfmet_ex+analysisTree.pfmet_ey*analysisTree.pfmet_ey);
 	  metSelH->Fill(metSel,weight);
+	  for (int iScale=0; iScale<21; ++ iScale) {
+	    float scaleFactor = 0.9 + 0.01*float(iScale);
+	    metSelScaleH[iScale]->Fill(metSel*scaleFactor,weight);
+	  }
+
 
 	  if (massSel>70&&massSel<110) {
 	    float unitX = dimuon.Px()/dimuon.Pt();

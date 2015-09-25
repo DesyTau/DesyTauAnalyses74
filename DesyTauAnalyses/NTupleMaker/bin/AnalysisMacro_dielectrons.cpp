@@ -373,7 +373,15 @@ int main(int argc, char * argv[]) {
   TH1F * histWeightsH = new TH1F("histWeightsH","",1,-0.5,0.5);
   TH1F * inputEventsH = new TH1F("inputEventsH","",1,-0.5,0.5);
 
+   TString scales[21] = {"M10","M9","M8","M7","M6","M5","M4","M3","M2","M1","0",
+			 "P1","P2","P3","P4","P5","P6","P7","P8","P9","P10"};
+
   TH1F * MetH = new TH1F("MetH","",200,0.,400.);
+  TH1F * MetScaleH[21];
+  for (int iScale=0; iScale<21; ++iScale) {    
+    MetScaleH[iScale] = new TH1F("Met"+scales[iScale]+"H","",200,0,400);
+  }
+
 
   TH1F * JPsiMassAllElectronsH = new TH1F("JPsiMassAllElectronsH","",200,2,4);
   TH1F * JPsiMassAllElectronsDRCutH = new TH1F("JPsiMassAllElectronsDRCutH","",200,2,4);
@@ -400,6 +408,11 @@ int main(int argc, char * argv[]) {
   TH1F * ZMassIsoTightElectronsH = new TH1F("ZMassIsoTightElectronsH","",200,0,200);
   TH1F * ZMassIsoTightElectronsDRCutH = new TH1F("ZMassIsoTightElectronsDRCutH","",200,0,200);
   TH1F * ZMassIsoTightElectronsUniqueH = new TH1F("ZMassIsoTightElectronsUniqueH","",200,0,200);
+
+  TH1F * ZMassIsoTightElectronsUniqueScaleH[21];
+  for (int iScale=0; iScale<21; ++iScale) {    
+    ZMassIsoTightElectronsUniqueScaleH[iScale]  = new TH1F("ZMassIsoTightElectronsUnique"+scales[iScale]+"H","",200,0,200);
+  }
 
   //new histograms
   TH1F * ptLeadingAllElectronsH = new TH1F("ptLeadingAllElectronsH","",200,0,200);
@@ -1292,6 +1305,12 @@ int main(int argc, char * argv[]) {
 	  }
 
 	  ZMassIsoTightElectronsUniqueH->Fill(mass,weight);
+	  for (int iScale=0; iScale<21; ++ iScale) {
+	    float scaleFactor = 0.98 + 0.002*float(iScale);
+	    ZMassIsoTightElectronsUniqueScaleH[iScale]->Fill(mass*scaleFactor,weight);
+	  }
+
+
 	  if (mass>30) {
 	    ptLeadingIsoTightElectronsUniqueH ->Fill(ptLeadingE,weight);
 	    etaLeadingIsoTightElectronsUniqueH->Fill(etaLeadingE,weight);
@@ -1302,6 +1321,10 @@ int main(int argc, char * argv[]) {
 	    float pfMet = sqrt(pfMetX*pfMetX+pfMetY*pfMetY);
 	    NumberOfVerticesH->Fill(float(analysisTree.primvertex_count),weight);
 	    MetH->Fill(pfMet,weight);
+	    for (int iScale=0; iScale<21; ++ iScale) {
+	      float scaleFactor = 0.9 + 0.01*float(iScale);
+	      MetScaleH[iScale]->Fill(pfMet*scaleFactor,weight);
+	    }
 	  }
 	}
       }
