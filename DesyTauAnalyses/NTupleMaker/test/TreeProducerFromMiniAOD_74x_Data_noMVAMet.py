@@ -34,16 +34,16 @@ process.GlobalTag = GlobalTag(process.GlobalTag, '74X_dataRun2_Prompt_v0', '')
 #process.GlobalTag.globaltag = cms.string('MCRUN2_74_V9::Al')
 
 process.maxEvents = cms.untracked.PSet(
-    input = cms.untracked.int32(-1)
+    input = cms.untracked.int32(10000)
 )
 
 process.source = cms.Source("PoolSource",
 	fileNames = cms.untracked.vstring(
 		# Single Muon Run2015B
-		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/164/00000/544E58CD-A226-E511-834E-02163E0134D6.root',
-		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/167/00000/EE9594B8-A826-E511-A18B-02163E011A7D.root',
-		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/4E8E390B-EA26-E511-9EDA-02163E013567.root',
-		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/60FF8405-EA26-E511-A892-02163E01387D.root'
+#		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/164/00000/544E58CD-A226-E511-834E-02163E0134D6.root',
+#		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/167/00000/EE9594B8-A826-E511-A18B-02163E011A7D.root',
+#		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/4E8E390B-EA26-E511-9EDA-02163E013567.root',
+#		'/store/data/Run2015B/SingleMuon/MINIAOD/PromptReco-v1/000/251/168/00000/60FF8405-EA26-E511-A892-02163E01387D.root'
 		# Single Electron Run2015B
 #		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/096/00000/22D22D7F-5626-E511-BDE3-02163E011FAB.root',
 #		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/161/00000/7019DC27-9C26-E511-84FF-02163E011CC2.root',
@@ -52,12 +52,20 @@ process.source = cms.Source("PoolSource",
 #		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/167/00000/E661FBF2-A726-E511-8B8B-02163E01207C.root',
 #		'/store/data/Run2015B/SingleElectron/MINIAOD/PromptReco-v1/000/251/168/00000/FCB6CB61-BC26-E511-8858-02163E01375B.root'
                 # Double EG Run2015B
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/096/00000/8A2D533C-5626-E511-AF3C-02163E011FAB.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/161/00000/AC857A3B-9C26-E511-B32E-02163E012704.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/163/00000/9CB965BF-9F26-E511-8FB1-02163E012040.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/164/00000/2CA2349A-A526-E511-A371-02163E0138D0.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/167/00000/C446EC67-A726-E511-81C1-02163E0119E7.root',
-#		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/168/00000/747F782A-BB26-E511-BA24-02163E011EE9.root'
+		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/096/00000/8A2D533C-5626-E511-AF3C-02163E011FAB.root',
+		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/161/00000/AC857A3B-9C26-E511-B32E-02163E012704.root',
+		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/163/00000/9CB965BF-9F26-E511-8FB1-02163E012040.root',
+		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/164/00000/2CA2349A-A526-E511-A371-02163E0138D0.root',
+		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/167/00000/C446EC67-A726-E511-81C1-02163E0119E7.root',
+		'/store/data/Run2015B/DoubleEG/MINIAOD/PromptReco-v1/000/251/168/00000/747F782A-BB26-E511-BA24-02163E011EE9.root'
+		# MuonEG Run2015B
+#		'/store/data/Run2015B/MuonEG/MINIAOD/PromptReco-v1/000/251/162/00000/427789C7-4127-E511-979F-02163E012096.root',
+#		'/store/data/Run2015B/MuonEG/MINIAOD/PromptReco-v1/000/251/164/00000/0270BD14-A426-E511-9857-02163E01182A.root',
+#		'/store/data/Run2015B/MuonEG/MINIAOD/PromptReco-v1/000/251/167/00000/F668ECD1-A726-E511-901F-02163E011D57.root',
+#		'/store/data/Run2015B/MuonEG/MINIAOD/PromptReco-v1/000/251/168/00000/F8F3DF28-BC26-E511-B98D-02163E0135AC.root',
+#		'/store/data/Run2015B/MuonEG/MINIAOD/PromptReco-v1/000/251/244/00000/10C5D0A8-7527-E511-BFE2-02163E0140E1.root',
+#		'/store/data/Run2015B/MuonEG/MINIAOD/PromptReco-v1/000/251/251/00000/88361DDE-7827-E511-94C3-02163E0127DF.root',
+#		'/store/data/Run2015B/MuonEG/MINIAOD/PromptReco-v1/000/251/252/00000/E09EA71E-9D27-E511-B478-02163E014558.root'
         )		    
 )
  
@@ -683,10 +691,10 @@ process.p = cms.Path(
 #                     process.egmGsfElectronIDSequence *
 #                     process.mvaTrigV025nsCSA14 * 
 #                     process.mvaNonTrigV025nsCSA14 * 
-    #process.ak4PFJets*
-#    process.mvaMetSequence*
-#    process.puJetIdSequence*
-    process.makeroottree
+	process.ak4PFJets*
+	process.mvaMetSequence*
+	process.puJetIdSequence*
+	process.makeroottree
     )
 
 
